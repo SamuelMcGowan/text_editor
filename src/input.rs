@@ -27,6 +27,12 @@ impl Bytes {
     }
 }
 
+impl Default for PollingStdin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PollingStdin {
     pub fn new() -> Self {
         let (send, recv) = crossbeam_channel::bounded(8);

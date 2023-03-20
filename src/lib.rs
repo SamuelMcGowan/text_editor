@@ -1,2 +1,3 @@
-mod term;
+mod event;
 mod input;
+mod term;
