@@ -1,3 +1,4 @@
+use std::os::fd::{AsRawFd, RawFd};
 use std::{io, mem};
 
 use libc::termios as Termios;
@@ -11,7 +12,7 @@ macro_rules! cvt {
     }};
 }
 
-fn get_termios(fd: i32) -> io::Result<Termios> {
+fn get_termios(fd: RawFd) -> io::Result<Termios> {
     unsafe {
         let mut termios: Termios = mem::zeroed();
         cvt!(libc::tcgetattr(fd, &mut termios))?;
@@ -19,17 +20,20 @@ fn get_termios(fd: i32) -> io::Result<Termios> {
     }
 }
 
-fn set_termios(fd: i32, termios: &Termios) -> io::Result<()> {
-    cvt!(unsafe { libc::tcsetattr(fd, libc::TCSANOW, termios) }).map(|_| {})
+fn set_termios(fd: RawFd, termios: &Termios) -> io::Result<()> {
+    cvt!(unsafe { libc::tcsetattr(fd, libc::TCSANOW, termios) })?;
+    Ok(())
 }
 
 pub struct RawTermGuard {
-    fd: i32,
+    fd: RawFd,
     termios_prev: Termios,
 }
 
 impl RawTermGuard {
-    pub fn new(fd: i32) -> io::Result<Self> {
+    pub fn new(fd: impl AsRawFd) -> io::Result<Self> {
+        let fd = fd.as_raw_fd();
+
         let mut termios = get_termios(fd)?;
         let termios_prev = termios;
 
