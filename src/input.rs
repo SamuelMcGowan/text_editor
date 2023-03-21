@@ -70,15 +70,15 @@ impl PollingStdin {
     }
 }
 
-#[test]
-fn foo() {
-    let _term = crate::term::RawTermGuard::new(libc::STDIN_FILENO);
-    let stdin = PollingStdin::new();
+// #[test]
+// fn foo() {
+//     let _term = crate::term::RawTermGuard::new(libc::STDIN_FILENO);
+//     let stdin = PollingStdin::new();
 
-    loop {
-        let Some(bytes) = stdin.read_while_available().unwrap() else {
-            continue;
-        };
-        print!("{:?}\r\n", bytes.as_slice());
-    }
-}
+//     loop {
+//         let Some(bytes) = stdin.read_while_available().unwrap() else {
+//             continue;
+//         };
+//         print!("{:?}\r\n", bytes.as_slice());
+//     }
+// }

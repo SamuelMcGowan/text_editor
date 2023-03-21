@@ -208,14 +208,14 @@ fn parse_modifiers(bytes: &[u8]) -> Option<Modifiers> {
         .map(|byte| Modifiers::from_bits_truncate(byte.saturating_sub(1)))
 }
 
-#[test]
-fn foo() {
-    let _term = crate::term::RawTermGuard::new(libc::STDIN_FILENO);
-    let events = EventReader::new();
+// #[test]
+// fn foo() {
+//     let _term = crate::term::RawTermGuard::new(libc::STDIN_FILENO);
+//     let events = EventReader::new();
 
-    loop {
-        if let Some(event) = events.read_event().unwrap() {
-            print!("{event:?}\r\n");
-        }
-    }
-}
+//     loop {
+//         if let Some(event) = events.read_event().unwrap() {
+//             print!("{event:?}\r\n");
+//         }
+//     }
+// }
