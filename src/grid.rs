@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut, Range};
 
-struct Grid<T> {
+pub struct Grid<T> {
     data: Box<[T]>,
 
     width: usize,
