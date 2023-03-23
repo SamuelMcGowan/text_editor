@@ -32,10 +32,31 @@ pub struct Style {
     underline: bool,
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct AnsiBuilder {
     s: String,
     style: Style,
+
+    cursor_visible: bool,
+    cursor_pos: (usize, usize),
+}
+
+impl Default for AnsiBuilder {
+    fn default() -> Self {
+        let mut ansi_builder = AnsiBuilder {
+            s: String::new(),
+            style: Style::default(),
+
+            cursor_visible: false,
+
+            // so that the call to set_cursor_position works
+            cursor_pos: (1, 1),
+        };
+
+        ansi_builder.set_cursor_position(0, 0);
+
+        ansi_builder
+    }
 }
 
 impl AnsiBuilder {
@@ -82,6 +103,29 @@ impl AnsiBuilder {
         }
 
         self.style = style;
+    }
+
+    pub fn set_cursor_position(&mut self, x: usize, y: usize) {
+        let pos = (x, y);
+
+        if pos == self.cursor_pos {
+            return;
+        }
+
+        let row = y.saturating_add(1);
+        let col = x.saturating_add(1);
+        write!(self.s, "\x1b[{row};{col}H").unwrap();
+    }
+
+    pub fn show_cursor(&mut self, vis: bool) {
+        if vis == self.cursor_visible {
+            return;
+        }
+
+        match vis {
+            true => write!(self.s, "\x1b[?25h").unwrap(),
+            false => write!(self.s, "\x1b[?25l").unwrap(),
+        }
     }
 
     pub fn finish(mut self) -> String {
