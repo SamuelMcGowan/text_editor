@@ -68,6 +68,12 @@ impl AnsiBuilder {
         }
     }
 
+    pub fn write_char(&mut self, c: char) {
+        if !c.is_control() {
+            self.s.push(c);
+        }
+    }
+
     pub fn write_raw(&mut self, s: &str) {
         self.s.push_str(s);
     }
