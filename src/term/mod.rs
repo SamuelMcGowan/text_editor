@@ -1,19 +1,29 @@
-use std::io::Write;
+use std::io::{self, Write};
+use std::os::fd::AsRawFd;
 
 use crate::buffer::Buffer;
 
 use self::ansi_builder::AnsiBuilder;
-use self::sys::RawTermGuard;
 
 mod ansi_builder;
 mod sys;
 
 pub struct Term {
-    _raw_term_guard: RawTermGuard,
+    raw_term: sys::RawTerm,
 }
 
 impl Term {
-    pub fn render_buffer(&mut self, buffer: &Buffer) {
+    pub fn new(fd: impl AsRawFd) -> io::Result<Self> {
+        Ok(Self {
+            raw_term: sys::RawTerm::new(fd)?,
+        })
+    }
+
+    pub fn size(&self) -> io::Result<(usize, usize)> {
+        self.raw_term.get_size()
+    }
+
+    pub fn render_buffer(&mut self, buffer: &Buffer) -> io::Result<()> {
         let mut ansi_buffer = AnsiBuilder::default();
 
         ansi_buffer.clear_screen();
@@ -26,7 +36,9 @@ impl Term {
                 ansi_buffer.write_char(cell.c);
             }
 
-            ansi_buffer.write_newline();
+            if buffer.height() == 0 || y < buffer.height() - 1 {
+                ansi_buffer.write_newline();
+            }
         }
 
         if let Some((x, y)) = buffer.cursor() {
@@ -35,7 +47,20 @@ impl Term {
 
         let ansi = ansi_buffer.finish();
 
-        print!("{ansi}");
-        std::io::stdout().flush().expect("couldn't flush stdout");
+        let mut stdout = std::io::stdout();
+
+        write!(stdout, "{ansi}")?;
+        stdout.flush()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Term;
+
+    #[test]
+    fn get_term_size() {
+        let term = Term::new(libc::STDIN_FILENO).unwrap();
+        let _ = term.size().unwrap();
     }
 }

@@ -2,6 +2,7 @@ use std::os::fd::{AsRawFd, RawFd};
 use std::{io, mem};
 
 use libc::termios as Termios;
+use libc::winsize as Winsize;
 
 macro_rules! cvt {
     ($res:expr) => {{
@@ -25,12 +26,18 @@ fn set_termios(fd: RawFd, termios: &Termios) -> io::Result<()> {
     Ok(())
 }
 
-pub(super) struct RawTermGuard {
+fn get_size(fd: RawFd) -> io::Result<(usize, usize)> {
+    let mut size: Winsize = unsafe { mem::zeroed() };
+    cvt!(unsafe { libc::ioctl(fd, libc::TIOCGWINSZ, &mut size) })?;
+    Ok((size.ws_col as usize, size.ws_row as usize))
+}
+
+pub(super) struct RawTerm {
     fd: RawFd,
     termios_prev: Termios,
 }
 
-impl RawTermGuard {
+impl RawTerm {
     pub fn new(fd: impl AsRawFd) -> io::Result<Self> {
         let fd = fd.as_raw_fd();
 
@@ -42,9 +49,13 @@ impl RawTermGuard {
 
         Ok(Self { fd, termios_prev })
     }
+
+    pub fn get_size(&self) -> io::Result<(usize, usize)> {
+        get_size(self.fd)
+    }
 }
 
-impl Drop for RawTermGuard {
+impl Drop for RawTerm {
     fn drop(&mut self) {
         let _ = set_termios(self.fd, &self.termios_prev);
     }

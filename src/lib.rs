@@ -1,5 +1,5 @@
-mod buffer;
-mod event;
-mod input;
-mod style;
-mod term;
+pub mod buffer;
+pub mod event;
+pub mod input;
+pub mod style;
+pub mod term;
