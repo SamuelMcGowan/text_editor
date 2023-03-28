@@ -36,51 +36,39 @@ pub struct Buffer {
 }
 
 impl Buffer {
-    pub fn empty() -> Self {
-        Self {
-            data: vec![].into_boxed_slice(),
+    pub fn new(width: usize, height: usize) -> Self {
+        Self::new_inner(width, height, vec![], None)
+    }
 
-            width: 0,
-            height: 0,
-
-            cursor: None,
+    pub fn resize_and_clear(&mut self, width: usize, height: usize) {
+        if width != self.width || height != self.height {
+            let data = std::mem::take(&mut self.data).into_vec();
+            *self = Self::new_inner(width, height, data, self.cursor);
+        } else {
+            self.data.fill(Cell::default());
         }
     }
 
-    pub fn filled(width: usize, height: usize, elem: Cell) -> Self {
-        let size = width
-            .checked_mul(height)
-            .expect("width * height overflowed");
+    fn new_inner(
+        width: usize,
+        height: usize,
 
-        let data = vec![elem; size].into_boxed_slice();
+        mut data: Vec<Cell>,
 
-        Self {
-            data,
+        cursor: Option<(usize, usize)>,
+    ) -> Self {
+        data.clear();
 
-            width,
-            height,
-
-            cursor: None,
-        }
-    }
-
-    pub fn from_iter(width: usize, height: usize, iter: impl IntoIterator<Item = Cell>) -> Self {
         let len = width
             .checked_mul(height)
             .expect("width * height overflowed");
-
-        let mut data_vec = Vec::with_capacity(len);
-        data_vec.extend(iter.into_iter().take(len));
-
-        assert_eq!(data_vec.len(), len, "iterator is too small to fill array");
+        data.extend(std::iter::repeat(Cell::default()).take(len));
 
         Self {
-            data: data_vec.into_boxed_slice(),
-
+            data: data.into_boxed_slice(),
             width,
             height,
-
-            cursor: None,
+            cursor,
         }
     }
 
@@ -165,11 +153,10 @@ mod tests {
 
     #[test]
     fn simple() {
-        let a = Cell::char('a');
         let b = Cell::char('b');
         let c = Cell::char('c');
 
-        let mut arr = Buffer::filled(10, 10, a);
+        let mut arr = Buffer::new(10, 10);
         assert_eq!(arr.len(), 10 * 10);
 
         arr[[0, 0]] = b;

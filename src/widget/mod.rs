@@ -1,7 +1,7 @@
 use std::io;
 use std::time::Duration;
 
-use crate::buffer::{Buffer, Cell};
+use crate::buffer::Buffer;
 use crate::event::{Event, EventReader};
 use crate::term::Term;
 
@@ -32,11 +32,14 @@ pub struct App {
 
 impl App {
     pub fn new(widget: impl Widget + 'static, refresh_rate: Duration) -> io::Result<Self> {
+        let term = Term::new()?;
+        let term_size = term.size()?;
+
         Ok(Self {
             root: Box::new(widget),
-            root_buf: Buffer::empty(),
+            root_buf: Buffer::new(term_size.0, term_size.0),
 
-            term: Term::new()?,
+            term,
             events: EventReader::new(),
 
             refresh_rate,
@@ -61,9 +64,8 @@ impl App {
             }
         }
 
-        // FIXME: this is pretty inefficient
         let term_size = self.term.size()?;
-        self.root_buf = Buffer::filled(term_size.0, term_size.1, Cell::default());
+        self.root_buf.resize_and_clear(term_size.0, term_size.1);
 
         self.root.render(&mut self.root_buf);
         self.term.render_buffer(&self.root_buf)?;
