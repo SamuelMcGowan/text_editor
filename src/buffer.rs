@@ -31,6 +31,8 @@ pub struct Buffer {
 
     width: usize,
     height: usize,
+
+    cursor: Option<(usize, usize)>,
 }
 
 impl Buffer {
@@ -46,6 +48,8 @@ impl Buffer {
 
             width,
             height,
+
+            cursor: None,
         }
     }
 
@@ -64,6 +68,8 @@ impl Buffer {
 
             width,
             height,
+
+            cursor: None,
         }
     }
 
@@ -93,12 +99,24 @@ impl Buffer {
         self.data.get_mut(index)
     }
 
-    pub fn blit(&mut self, x: usize, y: usize, buf: &Buffer) {
+    pub fn blit(&mut self, x: usize, y: usize, buf: &Buffer, set_cursor: bool) {
         for (x, buf_x) in (x..self.width).zip(0..buf.height) {
             for (y, buf_y) in (y..self.height).zip(0..buf.height) {
                 self[[x, y]] = buf[[buf_x, buf_y]];
             }
         }
+
+        if set_cursor {
+            self.cursor = buf.cursor;
+        }
+    }
+
+    pub fn set_cursor(&mut self, cursor: Option<(usize, usize)>) {
+        self.cursor = cursor;
+    }
+
+    pub fn cursor(&self) -> Option<(usize, usize)> {
+        self.cursor
     }
 
     fn index(&self, x: usize, y: usize) -> Option<usize> {
