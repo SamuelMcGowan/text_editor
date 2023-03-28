@@ -1,17 +1,40 @@
 use std::ops::{Index, IndexMut};
 
-pub struct Grid<T> {
-    data: Box<[T]>,
+use crate::style::Style;
+
+#[derive(Debug, Clone, Copy)]
+pub struct Cell {
+    pub c: char,
+    pub style: Style,
+}
+
+impl Cell {
+    fn char(c: char) -> Self {
+        Self {
+            c,
+            style: Style::default(),
+        }
+    }
+}
+
+impl Default for Cell {
+    fn default() -> Self {
+        Self {
+            c: ' ',
+            style: Style::default(),
+        }
+    }
+}
+
+pub struct Buffer {
+    data: Box<[Cell]>,
 
     width: usize,
     height: usize,
 }
 
-impl<T> Grid<T> {
-    pub fn filled(width: usize, height: usize, elem: T) -> Self
-    where
-        T: Clone,
-    {
+impl Buffer {
+    pub fn filled(width: usize, height: usize, elem: Cell) -> Self {
         let size = width
             .checked_mul(height)
             .expect("width * height overflowed");
@@ -26,7 +49,7 @@ impl<T> Grid<T> {
         }
     }
 
-    pub fn from_iter(width: usize, height: usize, iter: impl IntoIterator<Item = T>) -> Self {
+    pub fn from_iter(width: usize, height: usize, iter: impl IntoIterator<Item = Cell>) -> Self {
         let len = width
             .checked_mul(height)
             .expect("width * height overflowed");
@@ -56,27 +79,24 @@ impl<T> Grid<T> {
         self.data.len()
     }
 
-    pub fn as_slice(&self) -> &[T] {
+    pub fn as_slice(&self) -> &[Cell] {
         &self.data
     }
 
-    pub fn get(&self, x: usize, y: usize) -> Option<&T> {
+    pub fn get(&self, x: usize, y: usize) -> Option<&Cell> {
         let index = self.index(x, y)?;
         self.data.get(index)
     }
 
-    pub fn get_mut(&mut self, x: usize, y: usize) -> Option<&mut T> {
+    pub fn get_mut(&mut self, x: usize, y: usize) -> Option<&mut Cell> {
         let index = self.index(x, y)?;
         self.data.get_mut(index)
     }
 
-    pub fn blit(&mut self, x: usize, y: usize, grid: &Grid<T>)
-    where
-        T: Clone,
-    {
-        for (x, grid_x) in (x..self.width).zip(0..grid.height) {
-            for (y, grid_y) in (y..self.height).zip(0..grid.height) {
-                self[[x, y]] = grid[[grid_x, grid_y]].clone();
+    pub fn blit(&mut self, x: usize, y: usize, buf: &Buffer) {
+        for (x, buf_x) in (x..self.width).zip(0..buf.height) {
+            for (y, buf_y) in (y..self.height).zip(0..buf.height) {
+                self[[x, y]] = buf[[buf_x, buf_y]];
             }
         }
     }
@@ -92,15 +112,15 @@ impl<T> Grid<T> {
     }
 }
 
-impl<T> Index<[usize; 2]> for Grid<T> {
-    type Output = T;
+impl Index<[usize; 2]> for Buffer {
+    type Output = Cell;
 
     fn index(&self, index: [usize; 2]) -> &Self::Output {
         self.get(index[0], index[1]).expect("out of bounds")
     }
 }
 
-impl<T> IndexMut<[usize; 2]> for Grid<T> {
+impl IndexMut<[usize; 2]> for Buffer {
     fn index_mut(&mut self, index: [usize; 2]) -> &mut Self::Output {
         self.get_mut(index[0], index[1]).expect("out of bounds")
     }
@@ -108,18 +128,22 @@ impl<T> IndexMut<[usize; 2]> for Grid<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::Grid;
+    use super::{Buffer, Cell};
 
     #[test]
     fn simple() {
-        let mut arr = Grid::filled(10, 10, 0);
+        let a = Cell::char('a');
+        let b = Cell::char('b');
+        let c = Cell::char('c');
+
+        let mut arr = Buffer::filled(10, 10, a);
         assert_eq!(arr.len(), 10 * 10);
 
-        arr[[0, 0]] = 12;
-        arr[[9, 9]] = 14;
+        arr[[0, 0]] = b;
+        arr[[9, 9]] = c;
 
-        assert_eq!(arr[[0, 0]], 12);
-        assert_eq!(arr[[9, 9]], 14);
+        assert_eq!(arr[[0, 0]].c, 'b');
+        assert_eq!(arr[[9, 9]].c, 'c');
         assert!(arr.get(10, 10).is_none());
     }
 }
