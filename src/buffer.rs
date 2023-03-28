@@ -36,6 +36,17 @@ pub struct Buffer {
 }
 
 impl Buffer {
+    pub fn empty() -> Self {
+        Self {
+            data: vec![].into_boxed_slice(),
+
+            width: 0,
+            height: 0,
+
+            cursor: None,
+        }
+    }
+
     pub fn filled(width: usize, height: usize, elem: Cell) -> Self {
         let size = width
             .checked_mul(height)

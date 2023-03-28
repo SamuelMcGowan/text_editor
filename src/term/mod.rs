@@ -13,9 +13,9 @@ pub struct Term {
 }
 
 impl Term {
-    pub fn new(fd: impl AsRawFd) -> io::Result<Self> {
+    pub fn new() -> io::Result<Self> {
         Ok(Self {
-            raw_term: sys::RawTerm::new(fd)?,
+            raw_term: sys::RawTerm::new(libc::STDIN_FILENO)?,
         })
     }
 
@@ -60,7 +60,7 @@ mod tests {
 
     #[test]
     fn get_term_size() {
-        let term = Term::new(libc::STDIN_FILENO).unwrap();
+        let term = Term::new().unwrap();
         let _ = term.size().unwrap();
     }
 }
