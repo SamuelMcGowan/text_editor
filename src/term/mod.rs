@@ -1,5 +1,4 @@
 use std::io::{self, Write};
-use std::os::fd::AsRawFd;
 
 use crate::buffer::Buffer;
 
