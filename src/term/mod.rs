@@ -16,6 +16,8 @@ impl Term {
     pub fn render_buffer(&mut self, buffer: &Buffer) {
         let mut ansi_buffer = AnsiBuilder::default();
 
+        ansi_buffer.clear_screen();
+
         for y in 0..buffer.height() {
             for x in 0..buffer.width() {
                 let cell = buffer[[x, y]];

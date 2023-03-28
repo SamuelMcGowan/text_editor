@@ -23,8 +23,6 @@ impl Default for AnsiBuilder {
             cursor_pos: (1, 1),
         };
 
-        ansi_builder.clear_screen();
-
         ansi_builder.set_cursor_position(0, 0);
         ansi_builder.show_cursor(false);
 
