@@ -17,9 +17,8 @@ impl Default for AnsiBuilder {
             s: String::new(),
             style: Style::default(),
 
-            cursor_visible: false,
-
-            // so that the call to set_cursor_position works
+            // so that the following calls work
+            cursor_visible: true,
             cursor_pos: (1, 1),
         };
 
@@ -83,7 +82,7 @@ impl AnsiBuilder {
     }
 
     pub fn clear_screen(&mut self) {
-        self.s.push_str("\x1b[2J");
+        self.s.push_str("\x1b[3J");
     }
 
     pub fn set_cursor_position(&mut self, x: usize, y: usize) {
