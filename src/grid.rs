@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut, RangeBounds};
+use std::ops::{Index, IndexMut};
 
 pub struct Grid<T> {
     data: Box<[T]>,
@@ -68,6 +68,17 @@ impl<T> Grid<T> {
     pub fn get_mut(&mut self, x: usize, y: usize) -> Option<&mut T> {
         let index = self.index(x, y)?;
         self.data.get_mut(index)
+    }
+
+    pub fn blit(&mut self, x: usize, y: usize, grid: &Grid<T>)
+    where
+        T: Clone,
+    {
+        for (x, grid_x) in (x..self.width).zip(0..grid.height) {
+            for (y, grid_y) in (y..self.height).zip(0..grid.height) {
+                self[[x, y]] = grid[[grid_x, grid_y]].clone();
+            }
+        }
     }
 
     fn index(&self, x: usize, y: usize) -> Option<usize> {
