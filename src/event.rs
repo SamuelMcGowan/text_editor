@@ -1,6 +1,7 @@
 use bitflags::bitflags;
 
 use std::io;
+use std::time::Instant;
 
 use crate::input::PollingStdin;
 
@@ -67,8 +68,8 @@ impl EventReader {
         Self::default()
     }
 
-    pub fn read_event(&self) -> io::Result<Option<Event>> {
-        let Some(bytes) = self.stdin.read_while_available()? else {
+    pub fn read_with_deadline(&self, deadline: Instant) -> io::Result<Option<Event>> {
+        let Some(bytes) = self.stdin.read_with_deadline(deadline)? else {
             return Ok(None);
         };
         Ok(parse_event(bytes.as_slice()))

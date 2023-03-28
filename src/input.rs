@@ -1,7 +1,8 @@
 use std::io::Read;
+use std::time::Instant;
 use std::{io, thread};
 
-use crossbeam_channel::{Receiver, TryRecvError};
+use crossbeam_channel::{Receiver, RecvTimeoutError};
 
 pub struct PollingStdin {
     recv: Receiver<io::Result<Bytes>>,
@@ -61,11 +62,11 @@ impl PollingStdin {
         Self { recv }
     }
 
-    pub fn read_while_available(&self) -> io::Result<Option<Bytes>> {
-        match self.recv.try_recv() {
+    pub fn read_with_deadline(&self, deadline: Instant) -> io::Result<Option<Bytes>> {
+        match self.recv.recv_deadline(deadline) {
             Ok(bytes) => bytes.map(Some),
-            Err(TryRecvError::Empty) => Ok(None),
-            Err(TryRecvError::Disconnected) => panic!("sender disconnected"),
+            Err(RecvTimeoutError::Timeout) => Ok(None),
+            Err(RecvTimeoutError::Disconnected) => panic!("sender disconnected"),
         }
     }
 }

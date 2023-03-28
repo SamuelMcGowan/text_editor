@@ -1,5 +1,5 @@
 use std::io;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crate::buffer::Buffer;
 use crate::event::{Event, EventReader};
@@ -47,18 +47,24 @@ impl App {
     }
 
     pub fn run(mut self) -> io::Result<()> {
-        while let ControlFlow::Continue = self.update()? {
-            std::thread::sleep(self.refresh_rate);
-        }
+        while let ControlFlow::Continue = self.tick()? {}
         Ok(())
     }
 
-    fn update(&mut self) -> io::Result<ControlFlow> {
+    /// Handle events for however long a frame is, then update
+    /// and render the root widget.
+    fn tick(&mut self) -> io::Result<ControlFlow> {
+        let time = Instant::now();
+        let deadline = time
+            .checked_add(self.refresh_rate)
+            .expect("deadline overflowed");
+
         if let ControlFlow::Exit = self.root.update() {
             return Ok(ControlFlow::Exit);
         }
 
-        while let Some(event) = self.events.read_event()? {
+        // Keep reading (and handling) events until the deadline is up.
+        while let Some(event) = self.events.read_with_deadline(deadline)? {
             if let ControlFlow::Exit = self.root.handle_event(event) {
                 return Ok(ControlFlow::Exit);
             }
@@ -76,10 +82,16 @@ impl App {
 
 #[derive(Default)]
 pub struct InputPrinter {
+    ticks: usize,
     event: Option<Event>,
 }
 
 impl Widget for InputPrinter {
+    fn update(&mut self) -> ControlFlow {
+        self.ticks += 1;
+        ControlFlow::Continue
+    }
+
     fn handle_event(&mut self, event: Event) -> ControlFlow {
         self.event = Some(event);
         ControlFlow::Continue
@@ -94,6 +106,8 @@ impl Widget for InputPrinter {
             Some(event) => format!("{event:?}"),
             None => "--".to_string(),
         };
+
+        let s = format!("{}    {s}", self.ticks / 60);
 
         for (x, c) in s.chars().enumerate().take(buf.width()) {
             buf[[x, 0]].c = c;
