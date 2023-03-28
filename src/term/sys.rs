@@ -25,7 +25,7 @@ fn set_termios(fd: RawFd, termios: &Termios) -> io::Result<()> {
     Ok(())
 }
 
-pub struct RawTermGuard {
+pub(super) struct RawTermGuard {
     fd: RawFd,
     termios_prev: Termios,
 }
