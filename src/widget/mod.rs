@@ -1,3 +1,5 @@
+pub mod root;
+
 use std::io;
 use std::time::{Duration, Instant};
 
@@ -11,11 +13,11 @@ pub enum ControlFlow {
 }
 
 pub trait Widget {
+    fn handle_event(&mut self, event: Event) -> ControlFlow;
+
     fn update(&mut self) -> ControlFlow {
         ControlFlow::Continue
     }
-
-    fn handle_event(&mut self, event: Event) -> ControlFlow;
 
     fn render(&self, buf: &mut Buffer);
 }
@@ -87,13 +89,13 @@ pub struct InputPrinter {
 }
 
 impl Widget for InputPrinter {
-    fn update(&mut self) -> ControlFlow {
-        self.ticks += 1;
+    fn handle_event(&mut self, event: Event) -> ControlFlow {
+        self.event = Some(event);
         ControlFlow::Continue
     }
 
-    fn handle_event(&mut self, event: Event) -> ControlFlow {
-        self.event = Some(event);
+    fn update(&mut self) -> ControlFlow {
+        self.ticks += 1;
         ControlFlow::Continue
     }
 

@@ -61,7 +61,7 @@ pub enum KeyCode {
 }
 
 bitflags! {
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq, Eq)]
     pub struct Modifiers: u8 {
         const SHIFT = 0b0001;
         const ALT   = 0b0010;
