@@ -1,3 +1,4 @@
+pub mod editor;
 pub mod root;
 
 use std::io;
