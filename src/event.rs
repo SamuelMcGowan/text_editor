@@ -25,6 +25,15 @@ pub struct KeyEvent {
     pub modifiers: Modifiers,
 }
 
+impl KeyEvent {
+    pub fn key(key_code: KeyCode) -> Self {
+        Self {
+            key_code,
+            modifiers: Modifiers::empty(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum KeyCode {
     Char(char),
@@ -85,15 +94,6 @@ fn parse_event(bytes: &[u8]) -> Option<Event> {
     let (&first, rest) = bytes.split_first()?;
 
     let event = match first {
-        b'\t' => Event::just_key(KeyCode::Tab),
-        b'\n' => Event::just_key(KeyCode::Newline),
-        b'\r' => Event::just_key(KeyCode::Return),
-
-        byte if byte < 27 => Event::Key(KeyEvent {
-            key_code: KeyCode::Char((64 + byte) as char),
-            modifiers: Modifiers::CTRL,
-        }),
-
         b'\x1b' => {
             match rest {
                 b"" | b"\x1b" => Event::just_key(KeyCode::Escape),
@@ -186,7 +186,7 @@ fn parse_event(bytes: &[u8]) -> Option<Event> {
                 }
 
                 [c] => {
-                    let mut event = decode_byte(*c)?;
+                    let mut event = decode_bytes(&[*c])?;
                     event.modifiers |= Modifiers::ALT;
                     Event::Key(event)
                 }
@@ -195,10 +195,7 @@ fn parse_event(bytes: &[u8]) -> Option<Event> {
             }
         }
 
-        _ => Event::Key(KeyEvent {
-            key_code: KeyCode::Char(utf8_to_char(bytes)?),
-            modifiers: Modifiers::empty(),
-        }),
+        _ => Event::Key(decode_bytes(bytes)?),
     };
 
     Some(event)
@@ -211,41 +208,46 @@ fn parse_modifiers(bytes: &[u8]) -> Option<Modifiers> {
         .map(|byte| Modifiers::from_bits_truncate(byte.saturating_sub(1)))
 }
 
-fn utf8_to_char(bytes: &[u8]) -> Option<char> {
-    let s = std::str::from_utf8(bytes).ok()?;
-
-    // TODO: handle more than one character
-    let c = s.chars().next()?;
-
-    if !c.is_control() {
-        Some(c)
-    } else {
-        None
-    }
-}
-
-/// Decode a single ascii byte, handling the control keys
-/// and control characters*.
+/// Decode a character, handling the control keys,
+/// control characters* and utf-8.
+///
+/// Panics if the first byte isn't present.
 ///
 /// *Not to be confused with one another.
-fn decode_byte(byte: u8) -> Option<KeyEvent> {
-    if byte < 27 {
-        return Some(KeyEvent {
-            key_code: KeyCode::Char((b'A' + byte - 1) as char),
+fn decode_bytes(bytes: &[u8]) -> Option<KeyEvent> {
+    let [first, rest @ ..] = bytes else {
+        panic!("first character missing");
+    };
+    let first = *first;
+
+    Some(match first {
+        b'\t' => KeyEvent::key(KeyCode::Tab),
+        b'\n' => KeyEvent::key(KeyCode::Newline),
+        b'\r' => KeyEvent::key(KeyCode::Return),
+
+        b if b < 27 => KeyEvent {
+            key_code: KeyCode::Char((b'A' + b - 1) as char),
             modifiers: Modifiers::CTRL,
-        });
-    }
+        },
 
-    let c = byte as char;
+        b => {
+            let c = if rest.is_empty() {
+                b as char
+            } else {
+                let s = std::str::from_utf8(bytes).ok()?;
+                s.chars().next()?
+            };
 
-    if !c.is_ascii_control() {
-        Some(KeyEvent {
-            key_code: KeyCode::Char(c),
-            modifiers: Modifiers::empty(),
-        })
-    } else {
-        None
-    }
+            if c.is_ascii_control() {
+                return None;
+            }
+
+            KeyEvent {
+                key_code: KeyCode::Char(c),
+                modifiers: Modifiers::empty(),
+            }
+        }
+    })
 }
 
 // #[test]
