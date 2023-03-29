@@ -42,6 +42,7 @@ impl Term {
 
         if let Some((x, y)) = buffer.cursor() {
             ansi_buffer.set_cursor_position(x, y);
+            ansi_buffer.show_cursor(true);
         }
 
         let ansi = ansi_buffer.finish();

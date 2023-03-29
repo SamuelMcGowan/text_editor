@@ -47,6 +47,7 @@ impl Buffer {
         } else {
             self.data.fill(Cell::default());
         }
+        self.cursor = None;
     }
 
     fn new_inner(

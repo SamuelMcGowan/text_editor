@@ -106,6 +106,8 @@ impl AnsiBuilder {
             true => write!(self.s, "\x1b[?25h").unwrap(),
             false => write!(self.s, "\x1b[?25l").unwrap(),
         }
+
+        self.cursor_visible = vis;
     }
 
     pub fn finish(mut self) -> String {
