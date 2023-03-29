@@ -7,19 +7,22 @@ use crate::input::PollingStdin;
 
 #[derive(Debug)]
 pub enum Event {
-    Key {
-        key_code: KeyCode,
-        modifiers: Modifiers,
-    },
+    Key(KeyEvent),
 }
 
 impl Event {
     fn just_key(key_code: KeyCode) -> Self {
-        Self::Key {
+        Self::Key(KeyEvent {
             key_code,
             modifiers: Modifiers::empty(),
-        }
+        })
     }
+}
+
+#[derive(Debug)]
+pub struct KeyEvent {
+    pub key_code: KeyCode,
+    pub modifiers: Modifiers,
 }
 
 #[derive(Debug)]
@@ -79,26 +82,26 @@ impl EventReader {
 fn parse_event(bytes: &[u8]) -> Option<Event> {
     // print!("bytes: {bytes:?}\r\n");
 
-    let (&first, bytes) = bytes.split_first()?;
+    let (&first, rest) = bytes.split_first()?;
 
     let event = match first {
         b'\t' => Event::just_key(KeyCode::Tab),
         b'\n' => Event::just_key(KeyCode::Newline),
         b'\r' => Event::just_key(KeyCode::Return),
 
-        byte if byte < 27 => Event::Key {
+        byte if byte < 27 => Event::Key(KeyEvent {
             key_code: KeyCode::Char((64 + byte) as char),
             modifiers: Modifiers::CTRL,
-        },
+        }),
 
         b'\x1b' => {
-            match bytes {
+            match rest {
                 b"" | b"\x1b" => Event::just_key(KeyCode::Escape),
 
-                b"[" => Event::Key {
+                b"[" => Event::Key(KeyEvent {
                     key_code: KeyCode::Char('['),
                     modifiers: Modifiers::ALT,
-                },
+                }),
 
                 // vt sequence
                 [b'[', rest @ .., b'~'] => {
@@ -138,10 +141,10 @@ fn parse_event(bytes: &[u8]) -> Option<Event> {
                         _ => return None,
                     };
 
-                    Event::Key {
+                    Event::Key(KeyEvent {
                         key_code,
                         modifiers,
-                    }
+                    })
                 }
 
                 // xterm sequence
@@ -176,27 +179,26 @@ fn parse_event(bytes: &[u8]) -> Option<Event> {
                         parse_modifiers(modifiers)?
                     };
 
-                    Event::Key {
+                    Event::Key(KeyEvent {
                         key_code,
                         modifiers,
-                    }
+                    })
                 }
 
-                [c] => Event::Key {
-                    key_code: KeyCode::Char(*c as char),
-                    modifiers: Modifiers::ALT,
-                },
+                [c] => {
+                    let mut event = decode_byte(*c)?;
+                    event.modifiers |= Modifiers::ALT;
+                    Event::Key(event)
+                }
 
                 _ => return None,
             }
         }
 
-        byte if byte >= 32 => Event::Key {
-            key_code: KeyCode::Char(byte as char),
+        _ => Event::Key(KeyEvent {
+            key_code: KeyCode::Char(utf8_to_char(bytes)?),
             modifiers: Modifiers::empty(),
-        },
-
-        _ => return None,
+        }),
     };
 
     Some(event)
@@ -207,6 +209,43 @@ fn parse_modifiers(bytes: &[u8]) -> Option<Modifiers> {
         .ok()
         .and_then(|s| s.parse::<u8>().ok())
         .map(|byte| Modifiers::from_bits_truncate(byte.saturating_sub(1)))
+}
+
+fn utf8_to_char(bytes: &[u8]) -> Option<char> {
+    let s = std::str::from_utf8(bytes).ok()?;
+
+    // TODO: handle more than one character
+    let c = s.chars().next()?;
+
+    if !c.is_control() {
+        Some(c)
+    } else {
+        None
+    }
+}
+
+/// Decode a single ascii byte, handling the control keys
+/// and control characters*.
+///
+/// *Not to be confused with one another.
+fn decode_byte(byte: u8) -> Option<KeyEvent> {
+    if byte < 27 {
+        return Some(KeyEvent {
+            key_code: KeyCode::Char((b'A' + byte - 1) as char),
+            modifiers: Modifiers::CTRL,
+        });
+    }
+
+    let c = byte as char;
+
+    if !c.is_ascii_control() {
+        Some(KeyEvent {
+            key_code: KeyCode::Char(c),
+            modifiers: Modifiers::empty(),
+        })
+    } else {
+        None
+    }
 }
 
 // #[test]
