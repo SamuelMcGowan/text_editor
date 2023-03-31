@@ -1,6 +1,8 @@
 pub mod editor;
 pub mod root;
 
+use log::trace;
+
 use std::io;
 use std::time::{Duration, Instant};
 
@@ -50,7 +52,14 @@ impl App {
     }
 
     pub fn run(mut self) -> io::Result<()> {
-        while let ControlFlow::Continue = self.tick()? {}
+        let mut last_time = Instant::now();
+        while let ControlFlow::Continue = self.tick()? {
+            let now = Instant::now();
+            let duration = now.duration_since(last_time);
+            last_time = now;
+
+            trace!("frame finished in {duration:?}");
+        }
         Ok(())
     }
 
