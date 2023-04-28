@@ -24,35 +24,47 @@ impl Term {
     }
 
     pub fn render_buffer(&mut self, buffer: &Buffer) -> io::Result<()> {
-        let mut ansi_buffer = AnsiBuilder::default();
+        self.draw_frame(|ansi_buffer| {
+            for y in 0..buffer.height() {
+                for x in 0..buffer.width() {
+                    let cell = buffer[[x, y]];
 
+                    ansi_buffer.write_style(cell.style);
+                    ansi_buffer.write_char(cell.c);
+                }
+
+                if buffer.height() == 0 || y < buffer.height() - 1 {
+                    ansi_buffer.write_newline();
+                }
+            }
+
+            if let Some((x, y)) = buffer.cursor() {
+                ansi_buffer.set_cursor_position(x, y);
+                ansi_buffer.show_cursor(true);
+            }
+        })
+    }
+
+    fn draw_frame(&mut self, f: impl Fn(&mut AnsiBuilder)) -> io::Result<()> {
+        let mut ansi_buffer = AnsiBuilder::default();
         ansi_buffer.clear_screen();
 
-        for y in 0..buffer.height() {
-            for x in 0..buffer.width() {
-                let cell = buffer[[x, y]];
-
-                ansi_buffer.write_style(cell.style);
-                ansi_buffer.write_char(cell.c);
-            }
-
-            if buffer.height() == 0 || y < buffer.height() - 1 {
-                ansi_buffer.write_newline();
-            }
-        }
-
-        if let Some((x, y)) = buffer.cursor() {
-            ansi_buffer.set_cursor_position(x, y);
-            ansi_buffer.show_cursor(true);
-        }
+        f(&mut ansi_buffer);
 
         let ansi = ansi_buffer.finish();
 
         // Perform one write to stdout each frame.
         // No buffering performed, so no flushing required.
-        write!(self.raw_stdout, "{ansi}")?;
+        write!(self.raw_stdout, "{ansi}")
+    }
+}
 
-        Ok(())
+impl Drop for Term {
+    fn drop(&mut self) {
+        let _ = self.draw_frame(|ansi_buffer| {
+            ansi_buffer.clear_screen();
+            ansi_buffer.show_cursor(true);
+        });
     }
 }
 

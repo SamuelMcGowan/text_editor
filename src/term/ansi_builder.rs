@@ -87,6 +87,7 @@ impl AnsiBuilder {
     }
 
     pub fn clear_screen(&mut self) {
+        self.s.push_str("\x1b[2J");
         self.s.push_str("\x1b[3J");
     }
 
