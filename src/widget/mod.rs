@@ -2,12 +2,14 @@ pub mod editor;
 pub mod root;
 pub mod vsplit;
 
+use std::collections::VecDeque;
 use std::io;
 use std::time::{Duration, Instant};
 
 use log::trace;
 
 use crate::buffer::Buffer;
+use crate::command::{Command, CommandWriter};
 use crate::event::{Event, EventReader};
 use crate::term::Term;
 
@@ -18,11 +20,10 @@ pub enum ControlFlow {
 }
 
 pub trait Widget {
-    fn handle_event(&mut self, event: Event) -> ControlFlow;
+    fn handle_event(&mut self, event: Event, cmds: &mut CommandWriter);
 
-    fn update(&mut self) -> ControlFlow {
-        ControlFlow::Continue
-    }
+    #[allow(unused_variables)]
+    fn update(&mut self, cmds: &mut CommandWriter) {}
 
     fn render(&mut self, buf: &mut Buffer);
 }
@@ -33,6 +34,8 @@ pub struct App {
 
     term: Term,
     events: EventReader,
+
+    command_queue: VecDeque<Command>,
 
     refresh_rate: Duration,
 }
@@ -48,6 +51,8 @@ impl App {
 
             term,
             events: EventReader::new(),
+
+            command_queue: VecDeque::new(),
 
             refresh_rate,
         })
@@ -73,15 +78,17 @@ impl App {
             .checked_add(self.refresh_rate)
             .expect("deadline overflowed");
 
-        if let ControlFlow::Exit = self.root.update() {
-            return Ok(ControlFlow::Exit);
-        }
+        let mut cmds = CommandWriter::new(&mut self.command_queue);
+
+        self.root.update(&mut cmds);
 
         // Keep reading (and handling) events until the deadline is up.
         while let Some(event) = self.events.read_with_deadline(deadline)? {
-            if let ControlFlow::Exit = self.root.handle_event(event) {
-                return Ok(ControlFlow::Exit);
-            }
+            self.root.handle_event(event, &mut cmds);
+        }
+
+        if let ControlFlow::Exit = self.process_commands() {
+            return Ok(ControlFlow::Exit);
         }
 
         let term_size = self.term.size()?;
@@ -92,6 +99,17 @@ impl App {
 
         Ok(ControlFlow::Continue)
     }
+
+    fn process_commands(&mut self) -> ControlFlow {
+        #[allow(clippy::never_loop)]
+        for command in self.command_queue.drain(..) {
+            match command {
+                Command::Exit => return ControlFlow::Exit,
+            }
+        }
+
+        ControlFlow::Continue
+    }
 }
 
 #[derive(Default)]
@@ -101,14 +119,12 @@ pub struct InputPrinter {
 }
 
 impl Widget for InputPrinter {
-    fn handle_event(&mut self, event: Event) -> ControlFlow {
+    fn handle_event(&mut self, event: Event, _cmds: &mut CommandWriter) {
         self.event = Some(event);
-        ControlFlow::Continue
     }
 
-    fn update(&mut self) -> ControlFlow {
+    fn update(&mut self, _cmds: &mut CommandWriter) {
         self.ticks += 1;
-        ControlFlow::Continue
     }
 
     fn render(&mut self, buf: &mut Buffer) {

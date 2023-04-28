@@ -1,6 +1,7 @@
-use super::{ControlFlow, Widget};
+use super::Widget;
 use crate::buffer::Buffer;
-use crate::event::{EventKind, KeyCode, KeyEvent, Modifiers};
+use crate::command::CommandWriter;
+use crate::event::{Event, EventKind, KeyCode, KeyEvent, Modifiers};
 
 pub struct VSplit {
     top: Box<dyn Widget>,
@@ -38,14 +39,13 @@ impl VSplit {
 }
 
 impl Widget for VSplit {
-    fn handle_event(&mut self, event: crate::event::Event) -> ControlFlow {
+    fn handle_event(&mut self, event: Event, cmds: &mut CommandWriter) {
         match event.kind {
             EventKind::Key(KeyEvent {
                 key_code: KeyCode::Down,
                 modifiers: Modifiers::SHIFT,
             }) => {
                 self.focus = Focus::Bottom;
-                ControlFlow::Continue
             }
 
             EventKind::Key(KeyEvent {
@@ -53,21 +53,18 @@ impl Widget for VSplit {
                 modifiers: Modifiers::SHIFT,
             }) => {
                 self.focus = Focus::Top;
-                ControlFlow::Continue
             }
 
             _ => match self.focus {
-                Focus::Top => self.top.handle_event(event),
-                Focus::Bottom => self.bottom.handle_event(event),
+                Focus::Top => self.top.handle_event(event, cmds),
+                Focus::Bottom => self.bottom.handle_event(event, cmds),
             },
         }
     }
 
-    fn update(&mut self) -> ControlFlow {
-        if let ControlFlow::Exit = self.top.update() {
-            return ControlFlow::Exit;
-        }
-        self.bottom.update()
+    fn update(&mut self, cmds: &mut CommandWriter) {
+        self.top.update(cmds);
+        self.bottom.update(cmds)
     }
 
     fn render(&mut self, buf: &mut Buffer) {

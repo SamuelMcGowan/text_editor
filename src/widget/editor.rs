@@ -1,7 +1,8 @@
 use ropey::Rope;
 
-use super::{ControlFlow, Widget};
+use super::Widget;
 use crate::buffer::Buffer;
+use crate::command::CommandWriter;
 use crate::event::{Event, EventKind, KeyCode, KeyEvent};
 
 pub struct Editor {
@@ -21,7 +22,7 @@ impl Default for Editor {
 }
 
 impl Widget for Editor {
-    fn handle_event(&mut self, event: Event) -> ControlFlow {
+    fn handle_event(&mut self, event: Event, _cmds: &mut CommandWriter) {
         match event.kind {
             EventKind::Key(KeyEvent {
                 key_code,
@@ -67,12 +68,6 @@ impl Widget for Editor {
 
             _ => {}
         }
-
-        ControlFlow::Continue
-    }
-
-    fn update(&mut self) -> ControlFlow {
-        ControlFlow::Continue
     }
 
     fn render(&mut self, buf: &mut Buffer) {

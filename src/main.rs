@@ -14,7 +14,7 @@ fn main() {
         Editor::default(),
         Editor::default(),
         None,
-        None,
+        Some(1),
     ));
 
     let app = App::new(widget, refresh_rate).expect("couldn't create app");
