@@ -1,16 +1,24 @@
-use bitflags::bitflags;
-
 use std::io;
 use std::time::Instant;
 
-use crate::input::PollingStdin;
+use bitflags::bitflags;
 
-#[derive(Debug)]
-pub enum Event {
-    Key(KeyEvent),
+use crate::input::{Bytes, PollingStdin};
+
+#[derive(Debug, Clone)]
+pub struct Event {
+    pub bytes: Bytes,
+    pub kind: EventKind,
 }
 
-impl Event {
+#[derive(Debug, Clone)]
+pub enum EventKind {
+    Key(KeyEvent),
+    String(String),
+    Unknown,
+}
+
+impl EventKind {
     fn just_key(key_code: KeyCode) -> Self {
         Self::Key(KeyEvent {
             key_code,
@@ -19,7 +27,7 @@ impl Event {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct KeyEvent {
     pub key_code: KeyCode,
     pub modifiers: Modifiers,
@@ -34,7 +42,7 @@ impl KeyEvent {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum KeyCode {
     Char(char),
     Fn(u8),
@@ -55,13 +63,14 @@ pub enum KeyCode {
 
     Insert,
     Delete,
+    Backspace,
 
     PageUp,
     PageDown,
 }
 
 bitflags! {
-    #[derive(Debug, PartialEq, Eq)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Modifiers: u8 {
         const SHIFT = 0b0001;
         const ALT   = 0b0010;
@@ -84,11 +93,12 @@ impl EventReader {
         let Some(bytes) = self.stdin.read_with_deadline(deadline)? else {
             return Ok(None);
         };
-        Ok(parse_event(bytes.as_slice()))
+        let kind = parse_event(bytes.as_slice()).unwrap_or(EventKind::Unknown);
+        Ok(Some(Event { kind, bytes }))
     }
 }
 
-fn parse_event(bytes: &[u8]) -> Option<Event> {
+fn parse_event(bytes: &[u8]) -> Option<EventKind> {
     // print!("bytes: {bytes:?}\r\n");
 
     let (&first, rest) = bytes.split_first()?;
@@ -96,9 +106,9 @@ fn parse_event(bytes: &[u8]) -> Option<Event> {
     let event = match first {
         b'\x1b' => {
             match rest {
-                b"" | b"\x1b" => Event::just_key(KeyCode::Escape),
+                b"" | b"\x1b" => EventKind::just_key(KeyCode::Escape),
 
-                b"[" => Event::Key(KeyEvent {
+                b"[" => EventKind::Key(KeyEvent {
                     key_code: KeyCode::Char('['),
                     modifiers: Modifiers::ALT,
                 }),
@@ -141,7 +151,7 @@ fn parse_event(bytes: &[u8]) -> Option<Event> {
                         _ => return None,
                     };
 
-                    Event::Key(KeyEvent {
+                    EventKind::Key(KeyEvent {
                         key_code,
                         modifiers,
                     })
@@ -179,23 +189,23 @@ fn parse_event(bytes: &[u8]) -> Option<Event> {
                         parse_modifiers(modifiers)?
                     };
 
-                    Event::Key(KeyEvent {
+                    EventKind::Key(KeyEvent {
                         key_code,
                         modifiers,
                     })
                 }
 
                 [c] => {
-                    let mut event = decode_bytes(&[*c])?;
-                    event.modifiers |= Modifiers::ALT;
-                    Event::Key(event)
+                    let mut key_event = decode_byte(*c);
+                    key_event.modifiers |= Modifiers::ALT;
+                    EventKind::Key(key_event)
                 }
 
                 _ => return None,
             }
         }
 
-        _ => Event::Key(decode_bytes(bytes)?),
+        _ => decode_bytes(bytes)?,
     };
 
     Some(event)
@@ -214,40 +224,41 @@ fn parse_modifiers(bytes: &[u8]) -> Option<Modifiers> {
 /// Panics if the first byte isn't present.
 ///
 /// *Not to be confused with one another.
-fn decode_bytes(bytes: &[u8]) -> Option<KeyEvent> {
-    let [first, rest @ ..] = bytes else {
-        panic!("first character missing");
-    };
-    let first = *first;
+fn decode_bytes(bytes: &[u8]) -> Option<EventKind> {
+    match bytes {
+        [] => None,
+        [b] => Some(EventKind::Key(decode_byte(*b))),
+        _ => {
+            let s = std::str::from_utf8(bytes).ok()?;
+            let kind = if s.chars().nth(1).is_some() {
+                EventKind::String(s.to_owned())
+            } else {
+                EventKind::Key(KeyEvent::key(KeyCode::Char(s.chars().next()?)))
+            };
+            Some(kind)
+        }
+    }
+}
 
-    Some(match first {
+fn decode_byte(byte: u8) -> KeyEvent {
+    match byte {
         b'\t' => KeyEvent::key(KeyCode::Tab),
         b'\n' => KeyEvent::key(KeyCode::Newline),
         b'\r' => KeyEvent::key(KeyCode::Return),
+
+        b'\x7f' => KeyEvent::key(KeyCode::Backspace),
+        b'\x17' => KeyEvent {
+            key_code: KeyCode::Backspace,
+            modifiers: Modifiers::CTRL,
+        },
 
         b if b < 27 => KeyEvent {
             key_code: KeyCode::Char((b'A' + b - 1) as char),
             modifiers: Modifiers::CTRL,
         },
 
-        b => {
-            let c = if rest.is_empty() {
-                b as char
-            } else {
-                let s = std::str::from_utf8(bytes).ok()?;
-                s.chars().next()?
-            };
-
-            if c.is_ascii_control() {
-                return None;
-            }
-
-            KeyEvent {
-                key_code: KeyCode::Char(c),
-                modifiers: Modifiers::empty(),
-            }
-        }
-    })
+        _ => KeyEvent::key(KeyCode::Char(byte as char)),
+    }
 }
 
 // #[test]

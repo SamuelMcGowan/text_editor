@@ -1,6 +1,5 @@
-use crate::event::{Event, KeyCode, KeyEvent, Modifiers};
-
 use super::{ControlFlow, Widget};
+use crate::event::{Event, EventKind, KeyCode, KeyEvent, Modifiers};
 
 pub struct Root(Box<dyn Widget>);
 
@@ -12,8 +11,8 @@ impl Root {
 
 impl Widget for Root {
     fn handle_event(&mut self, event: Event) -> ControlFlow {
-        match &event {
-            Event::Key(KeyEvent {
+        match &event.kind {
+            EventKind::Key(KeyEvent {
                 key_code: KeyCode::Char('Q'),
                 modifiers: Modifiers::CTRL,
             }) => ControlFlow::Exit,

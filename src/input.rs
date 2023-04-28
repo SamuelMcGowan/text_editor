@@ -1,6 +1,6 @@
 use std::io::Read;
 use std::time::Instant;
-use std::{io, thread};
+use std::{fmt, io, thread};
 
 use crossbeam_channel::{Receiver, RecvTimeoutError};
 
@@ -8,7 +8,7 @@ pub struct PollingStdin {
     recv: Receiver<io::Result<Bytes>>,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Bytes {
     len: usize,
     buf: [u8; 32],
@@ -25,6 +25,13 @@ impl Bytes {
 
     pub fn is_empty(&self) -> bool {
         self.len == 0
+    }
+}
+
+impl fmt::Debug for Bytes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = String::from_utf8_lossy(self.as_slice());
+        s.fmt(f)
     }
 }
 

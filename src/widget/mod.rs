@@ -1,10 +1,10 @@
 pub mod editor;
 pub mod root;
 
-use log::trace;
-
 use std::io;
 use std::time::{Duration, Instant};
+
+use log::trace;
 
 use crate::buffer::Buffer;
 use crate::event::{Event, EventReader};
@@ -114,15 +114,12 @@ impl Widget for InputPrinter {
             return;
         }
 
-        let s = match &self.event {
-            Some(event) => format!("{event:?}"),
-            None => "--".to_string(),
-        };
+        let s = format!("Time: {}\nEvent: {:#?}", self.ticks / 60, self.event);
 
-        let s = format!("{}    {s}", self.ticks / 60);
-
-        for (x, c) in s.chars().enumerate().take(buf.width()) {
-            buf[[x, 0]].c = c;
+        for (i, line) in s.lines().enumerate().take(buf.height()) {
+            for (x, c) in line.chars().enumerate().take(buf.width()) {
+                buf[[x, i]].c = c;
+            }
         }
     }
 }

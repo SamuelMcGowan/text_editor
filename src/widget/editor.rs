@@ -1,7 +1,7 @@
 use ropey::Rope;
 
 use crate::buffer::Buffer;
-use crate::event::{Event, KeyCode, KeyEvent};
+use crate::event::{Event, KeyCode, KeyEvent, EventKind};
 
 use super::{ControlFlow, Widget};
 
@@ -21,8 +21,8 @@ impl Default for Editor {
 
 impl Widget for Editor {
     fn handle_event(&mut self, event: Event) -> ControlFlow {
-        match event {
-            Event::Key(KeyEvent {
+        match event.kind {
+            EventKind::Key(KeyEvent {
                 key_code,
                 modifiers,
             }) if modifiers.is_empty() => match key_code {
