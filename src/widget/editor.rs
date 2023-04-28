@@ -75,7 +75,7 @@ impl Widget for Editor {
         ControlFlow::Continue
     }
 
-    fn render(&self, buf: &mut Buffer) {
+    fn render(&mut self, buf: &mut Buffer) {
         for (y, line) in (0..buf.height()).zip(self.rope.lines()) {
             for (x, c) in (0..buf.width()).zip(line.chars()) {
                 buf[[x, y]].c = c;

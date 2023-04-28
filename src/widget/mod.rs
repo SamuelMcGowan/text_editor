@@ -1,5 +1,6 @@
 pub mod editor;
 pub mod root;
+pub mod vsplit;
 
 use std::io;
 use std::time::{Duration, Instant};
@@ -10,6 +11,7 @@ use crate::buffer::Buffer;
 use crate::event::{Event, EventReader};
 use crate::term::Term;
 
+#[must_use]
 pub enum ControlFlow {
     Continue,
     Exit,
@@ -22,7 +24,7 @@ pub trait Widget {
         ControlFlow::Continue
     }
 
-    fn render(&self, buf: &mut Buffer);
+    fn render(&mut self, buf: &mut Buffer);
 }
 
 pub struct App {
@@ -109,7 +111,7 @@ impl Widget for InputPrinter {
         ControlFlow::Continue
     }
 
-    fn render(&self, buf: &mut Buffer) {
+    fn render(&mut self, buf: &mut Buffer) {
         if buf.height() == 0 {
             return;
         }

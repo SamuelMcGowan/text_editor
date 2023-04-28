@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use text_editor::widget::editor::Editor;
 use text_editor::widget::root::Root;
+use text_editor::widget::vsplit::VSplit;
 use text_editor::widget::App;
 
 fn main() {
@@ -9,7 +10,13 @@ fn main() {
 
     let refresh_rate = Duration::from_millis(17);
 
-    let widget = Root::new(Editor::default());
+    let widget = Root::new(VSplit::new(
+        Editor::default(),
+        Editor::default(),
+        None,
+        None,
+    ));
+
     let app = App::new(widget, refresh_rate).expect("couldn't create app");
     app.run().expect("IO error");
 }

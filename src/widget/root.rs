@@ -24,7 +24,7 @@ impl Widget for Root {
         self.0.update()
     }
 
-    fn render(&self, buf: &mut crate::buffer::Buffer) {
+    fn render(&mut self, buf: &mut crate::buffer::Buffer) {
         self.0.render(buf)
     }
 }
