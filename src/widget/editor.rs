@@ -7,6 +7,7 @@ use crate::event::{Event, EventKind, KeyCode, KeyEvent};
 pub struct Editor {
     rope: Rope,
     cursor_pos: usize,
+    cursor_ghost_pos: usize,
 }
 
 impl Default for Editor {
@@ -14,6 +15,7 @@ impl Default for Editor {
         Self {
             rope: Rope::new(),
             cursor_pos: 0,
+            cursor_ghost_pos: 0,
         }
     }
 }
@@ -27,11 +29,11 @@ impl Widget for Editor {
             }) if modifiers.is_empty() => match key_code {
                 KeyCode::Char(c) => {
                     self.rope.insert_char(self.cursor_pos, c);
-                    self.cursor_pos += 1;
+                    self.move_cursor(1);
                 }
                 KeyCode::Return => {
                     self.rope.insert_char(self.cursor_pos, '\n');
-                    self.cursor_pos += 1;
+                    self.move_cursor(1);
                 }
 
                 KeyCode::Delete => {
@@ -42,17 +44,18 @@ impl Widget for Editor {
                 KeyCode::Backspace => {
                     let new_pos = self.cursor_pos.saturating_sub(1);
                     let _ = self.rope.try_remove(new_pos..self.cursor_pos);
-                    self.cursor_pos = new_pos;
+                    self.move_cursor(-1);
                 }
 
-                KeyCode::Left => {
-                    self.cursor_pos = self.cursor_pos.saturating_sub(1);
-                }
-                KeyCode::Right => {
-                    self.cursor_pos = self.cursor_pos.saturating_add(1).min(self.rope.len_chars());
-                }
+                KeyCode::Left => self.move_cursor(-1),
+                KeyCode::Right => self.move_cursor(1),
+
+                KeyCode::Up => self.move_cursor_vertical(-1),
+                KeyCode::Down => self.move_cursor_vertical(1),
+
                 _ => {}
             },
+
             _ => {}
         }
 
@@ -70,18 +73,67 @@ impl Widget for Editor {
             }
         }
 
-        let (cursor_x, cursor_y) = self.cursor_xy();
-        if cursor_x < buf.width() && cursor_y < buf.height() {
-            buf.set_cursor(Some((cursor_x, cursor_y)));
+        let cursor = self.pos_to_xy(self.cursor_pos).unwrap();
+        if cursor.x < buf.width() && cursor.y < buf.height() {
+            buf.set_cursor(Some((cursor.x, cursor.y)));
         }
     }
 }
 
 impl Editor {
-    fn cursor_xy(&self) -> (usize, usize) {
-        let cursor_y = self.rope.char_to_line(self.cursor_pos);
-        let cursor_x = self.cursor_pos - self.rope.line_to_char(cursor_y);
+    fn pos_to_xy(&self, pos: usize) -> Option<Pos> {
+        let y = self.rope.char_to_line(pos);
+        let line_start = self.rope.line_to_char(y);
+        let x = pos - line_start;
 
-        (cursor_x, cursor_y)
+        Some(Pos { x, y })
     }
+
+    fn line_len(&self, line_y: usize) -> Option<usize> {
+        let line_len = self.rope.get_line(line_y)?.len_chars();
+
+        // There is always at least one line.
+        if line_y == self.rope.len_lines() - 1 {
+            Some(line_len)
+        } else {
+            Some(line_len.saturating_sub(1))
+        }
+    }
+
+    fn move_cursor(&mut self, offset: isize) {
+        let new_pos = self
+            .cursor_pos
+            .saturating_add_signed(offset)
+            .min(self.rope.len_chars());
+
+        self.cursor_pos = new_pos;
+        self.cursor_ghost_pos = new_pos;
+    }
+
+    fn move_cursor_vertical(&mut self, offset: isize) {
+        let current_y = self.rope.char_to_line(self.cursor_pos);
+        match current_y.checked_add_signed(offset) {
+            None => {
+                self.cursor_pos = 0;
+                self.cursor_ghost_pos = 0;
+            }
+            Some(new_y) if new_y >= self.rope.len_lines() => {
+                self.cursor_pos = self.rope.len_chars();
+                self.cursor_ghost_pos = self.cursor_pos;
+            }
+            Some(new_y) => {
+                let ghost_x = self.pos_to_xy(self.cursor_ghost_pos).unwrap().x;
+
+                let new_line_start = self.rope.line_to_char(new_y);
+                let new_line_len = self.line_len(new_y).unwrap();
+
+                self.cursor_pos = new_line_start + ghost_x.min(new_line_len);
+            }
+        }
+    }
+}
+
+struct Pos {
+    x: usize,
+    y: usize,
 }
