@@ -59,6 +59,12 @@ impl Widget for Editor {
                 _ => {}
             },
 
+            EventKind::String(s) => {
+                self.rope.insert(self.cursor_pos, &s);
+                // conversion could *technically* overflow
+                self.move_cursor(s.chars().count() as isize);
+            }
+
             _ => {}
         }
 
