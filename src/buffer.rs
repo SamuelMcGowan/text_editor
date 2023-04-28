@@ -104,14 +104,16 @@ impl Buffer {
     }
 
     pub fn blit(&mut self, x: usize, y: usize, buf: &Buffer, set_cursor: bool) {
-        for (x, buf_x) in (x..self.width).zip(0..buf.height) {
+        for (x, buf_x) in (x..self.width).zip(0..buf.width) {
             for (y, buf_y) in (y..self.height).zip(0..buf.height) {
                 self[[x, y]] = buf[[buf_x, buf_y]];
             }
         }
 
         if set_cursor {
-            self.cursor = buf.cursor;
+            self.cursor = buf
+                .cursor
+                .map(|(cx, cy)| (cx.saturating_add(x), cy.saturating_add(y)));
         }
     }
 
