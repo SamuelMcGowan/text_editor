@@ -33,19 +33,24 @@ impl AnsiBuilder {
     pub fn write_str(&mut self, s: &str) {
         // remove the control characters without having to
         // push each character separately
+        let mut len = 0;
         for part in s.split(|c: char| c.is_control()) {
+            len += part.chars().count();
             self.s.push_str(part);
         }
+        self.cursor_pos.0 = self.cursor_pos.0.saturating_add(len);
     }
 
     pub fn write_char(&mut self, c: char) {
         if !c.is_control() {
             self.s.push(c);
         }
+        self.cursor_pos.0 = self.cursor_pos.0.saturating_add(1);
     }
 
     pub fn write_newline(&mut self) {
         self.s.push_str("\r\n");
+        self.cursor_pos = (0, self.cursor_pos.1.saturating_add(1));
     }
 
     pub fn write_style(&mut self, style: Style) {
@@ -118,9 +123,8 @@ impl AnsiBuilder {
 
 #[cfg(test)]
 mod tests {
-    use crate::style::{Color, Style, Weight};
-
     use super::AnsiBuilder;
+    use crate::style::{Color, Style, Weight};
 
     #[test]
     fn my_test() {
