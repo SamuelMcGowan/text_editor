@@ -97,6 +97,8 @@ impl AnsiBuilder {
             return;
         }
 
+        self.cursor_pos = pos;
+
         let row = y.saturating_add(1);
         let col = x.saturating_add(1);
         write!(self.s, "\x1b[{row};{col}H").unwrap();
