@@ -53,6 +53,9 @@ impl Widget for Editor {
                 KeyCode::Up => self.move_cursor_vertical(-1),
                 KeyCode::Down => self.move_cursor_vertical(1),
 
+                KeyCode::Home => self.move_cursor_home(),
+                KeyCode::End => self.move_cursor_end(),
+
                 _ => {}
             },
 
@@ -127,9 +130,25 @@ impl Editor {
                 let new_line_start = self.rope.line_to_char(new_y);
                 let new_line_len = self.line_len(new_y).unwrap();
 
-                self.cursor_pos = new_line_start + ghost_x.min(new_line_len);
+                self.cursor_pos = new_line_start.saturating_add(ghost_x.min(new_line_len));
             }
         }
+    }
+
+    fn move_cursor_home(&mut self) {
+        let cursor_y = self.rope.char_to_line(self.cursor_pos);
+        self.cursor_pos = self.rope.line_to_char(cursor_y);
+        self.cursor_ghost_pos = self.cursor_pos;
+    }
+
+    fn move_cursor_end(&mut self) {
+        let cursor_y = self.rope.char_to_line(self.cursor_pos);
+
+        let line_start = self.rope.line_to_char(cursor_y);
+        let line_len = self.line_len(cursor_y).unwrap();
+
+        self.cursor_pos = line_start.saturating_add(line_len);
+        self.cursor_ghost_pos = self.cursor_pos;
     }
 }
 
