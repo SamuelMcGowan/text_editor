@@ -60,44 +60,47 @@ impl App {
 
     pub fn run(mut self) -> io::Result<()> {
         let mut last_time = Instant::now();
-        while let ControlFlow::Continue = self.tick()? {
-            let now = Instant::now();
-            let duration = now.duration_since(last_time);
-            last_time = now;
+
+        loop {
+            let time = Instant::now();
+            let deadline = time
+                .checked_add(self.refresh_rate)
+                .expect("deadline overflowed");
+
+            if let ControlFlow::Exit = self.update() {
+                break;
+            }
+
+            if let ControlFlow::Exit = self.handle_events(deadline)? {
+                break;
+            }
+
+            self.render()?;
+
+            let duration = time.duration_since(last_time);
+            last_time = time;
 
             trace!("frame finished in {duration:?}");
         }
+
         Ok(())
     }
 
-    /// Handle events for however long a frame is, then update
-    /// and render the root widget.
-    fn tick(&mut self) -> io::Result<ControlFlow> {
-        let time = Instant::now();
-        let deadline = time
-            .checked_add(self.refresh_rate)
-            .expect("deadline overflowed");
-
+    fn update(&mut self) -> ControlFlow {
         let mut cmds = CommandWriter::new(&mut self.command_queue);
-
         self.root.update(&mut cmds);
+        self.process_commands()
+    }
+
+    fn handle_events(&mut self, deadline: Instant) -> io::Result<ControlFlow> {
+        let mut cmds = CommandWriter::new(&mut self.command_queue);
 
         // Keep reading (and handling) events until the deadline is up.
         while let Some(event) = self.events.read_with_deadline(deadline)? {
             self.root.handle_event(event, &mut cmds);
         }
 
-        if let ControlFlow::Exit = self.process_commands() {
-            return Ok(ControlFlow::Exit);
-        }
-
-        let term_size = self.term.size()?;
-        self.root_buf.resize_and_clear(term_size.0, term_size.1);
-
-        self.root.render(&mut self.root_buf);
-        self.term.render_buffer(&self.root_buf)?;
-
-        Ok(ControlFlow::Continue)
+        Ok(self.process_commands())
     }
 
     fn process_commands(&mut self) -> ControlFlow {
@@ -109,6 +112,16 @@ impl App {
         }
 
         ControlFlow::Continue
+    }
+
+    fn render(&mut self) -> io::Result<()> {
+        let term_size = self.term.size()?;
+        self.root_buf.resize_and_clear(term_size.0, term_size.1);
+
+        self.root.render(&mut self.root_buf);
+        self.term.render_buffer(&self.root_buf)?;
+
+        Ok(())
     }
 }
 
