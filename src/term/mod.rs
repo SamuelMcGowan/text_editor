@@ -1,20 +1,21 @@
 use std::io::{self, Write};
 
-use crate::buffer::Buffer;
-
 use self::ansi_builder::AnsiBuilder;
+use crate::buffer::Buffer;
 
 mod ansi_builder;
 mod sys;
 
 pub struct Term {
     raw_term: sys::RawTerm,
+    raw_stdout: sys::RawStdout,
 }
 
 impl Term {
     pub fn new() -> io::Result<Self> {
         Ok(Self {
-            raw_term: sys::RawTerm::new(libc::STDIN_FILENO)?,
+            raw_term: sys::RawTerm::new()?,
+            raw_stdout: sys::RawStdout::default(),
         })
     }
 
@@ -47,10 +48,11 @@ impl Term {
 
         let ansi = ansi_buffer.finish();
 
-        let mut stdout = std::io::stdout();
+        // Perform one write to stdout each frame.
+        // No buffering performed, so no flushing required.
+        write!(self.raw_stdout, "{ansi}")?;
 
-        write!(stdout, "{ansi}")?;
-        stdout.flush()
+        Ok(())
     }
 }
 

@@ -1,8 +1,10 @@
-use std::os::fd::{AsRawFd, RawFd};
+use std::fs::File;
+use std::io::Write;
+use std::mem::ManuallyDrop;
+use std::os::fd::{FromRawFd, RawFd};
 use std::{io, mem};
 
-use libc::termios as Termios;
-use libc::winsize as Winsize;
+use libc::{termios as Termios, winsize as Winsize, STDIN_FILENO, STDOUT_FILENO};
 
 macro_rules! cvt {
     ($res:expr) => {{
@@ -33,30 +35,50 @@ fn get_size(fd: RawFd) -> io::Result<(usize, usize)> {
 }
 
 pub(super) struct RawTerm {
-    fd: RawFd,
     termios_prev: Termios,
 }
 
 impl RawTerm {
-    pub fn new(fd: impl AsRawFd) -> io::Result<Self> {
-        let fd = fd.as_raw_fd();
-
-        let mut termios = get_termios(fd)?;
+    pub fn new() -> io::Result<Self> {
+        let mut termios = get_termios(STDIN_FILENO)?;
         let termios_prev = termios;
 
         unsafe { libc::cfmakeraw(&mut termios as *mut Termios) };
-        set_termios(fd, &termios)?;
+        set_termios(STDIN_FILENO, &termios)?;
 
-        Ok(Self { fd, termios_prev })
+        Ok(Self { termios_prev })
     }
 
     pub fn get_size(&self) -> io::Result<(usize, usize)> {
-        get_size(self.fd)
+        get_size(STDIN_FILENO)
     }
 }
 
 impl Drop for RawTerm {
     fn drop(&mut self) {
-        let _ = set_termios(self.fd, &self.termios_prev);
+        let _ = set_termios(STDIN_FILENO, &self.termios_prev);
     }
+}
+
+#[derive(Default)]
+pub struct RawStdout;
+
+impl Write for RawStdout {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        unsafe { use_stdout(|stdout| stdout.write(buf)) }
+    }
+
+    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
+        unsafe { use_stdout(|stdout| stdout.write_vectored(bufs)) }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        unsafe { use_stdout(|stdout| stdout.flush()) }
+    }
+}
+
+/// Safety: don't close stdout by dropping the file.
+unsafe fn use_stdout<T>(f: impl Fn(&mut ManuallyDrop<File>) -> T) -> T {
+    let mut stdout = ManuallyDrop::new(File::from_raw_fd(STDOUT_FILENO));
+    f(&mut stdout)
 }
