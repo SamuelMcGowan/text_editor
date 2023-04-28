@@ -1,9 +1,8 @@
 use ropey::Rope;
 
-use crate::buffer::Buffer;
-use crate::event::{Event, KeyCode, KeyEvent, EventKind};
-
 use super::{ControlFlow, Widget};
+use crate::buffer::Buffer;
+use crate::event::{Event, EventKind, KeyCode, KeyEvent};
 
 pub struct Editor {
     rope: Rope,
@@ -34,6 +33,24 @@ impl Widget for Editor {
                     self.rope.insert_char(self.cursor_pos, '\n');
                     self.cursor_pos += 1;
                 }
+
+                KeyCode::Delete => {
+                    let _ = self
+                        .rope
+                        .try_remove(self.cursor_pos..(self.cursor_pos.saturating_add(1)));
+                }
+                KeyCode::Backspace => {
+                    let new_pos = self.cursor_pos.saturating_sub(1);
+                    let _ = self.rope.try_remove(new_pos..self.cursor_pos);
+                    self.cursor_pos = new_pos;
+                }
+
+                KeyCode::Left => {
+                    self.cursor_pos = self.cursor_pos.saturating_sub(1);
+                }
+                KeyCode::Right => {
+                    self.cursor_pos = self.cursor_pos.saturating_add(1).min(self.rope.len_chars());
+                }
                 _ => {}
             },
             _ => {}
@@ -53,28 +70,18 @@ impl Widget for Editor {
             }
         }
 
-        let (cursor_x, cursor_y) = if let Some(cursor_y) = self
-            .rope
-            .get_line(self.cursor_pos)
-            .map(|line| line.len_chars())
-        {
-            let cursor_x = self.cursor_pos - cursor_y;
-            (cursor_x, cursor_y)
-        } else {
-            let cursor_x = self
-                .rope
-                .lines()
-                .last()
-                .map(|line| line.len_chars())
-                .unwrap_or_default();
-
-            let cursor_y = self.rope.len_lines().saturating_sub(1);
-
-            (cursor_x, cursor_y)
-        };
-
+        let (cursor_x, cursor_y) = self.cursor_xy();
         if cursor_x < buf.width() && cursor_y < buf.height() {
             buf.set_cursor(Some((cursor_x, cursor_y)));
         }
+    }
+}
+
+impl Editor {
+    fn cursor_xy(&self) -> (usize, usize) {
+        let cursor_y = self.rope.char_to_line(self.cursor_pos);
+        let cursor_x = self.cursor_pos - self.rope.line_to_char(cursor_y);
+
+        (cursor_x, cursor_y)
     }
 }
