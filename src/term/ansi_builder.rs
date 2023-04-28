@@ -8,7 +8,6 @@ pub struct AnsiBuilder {
     style: Style,
 
     cursor_visible: bool,
-    cursor_pos: (usize, usize),
 }
 
 impl Default for AnsiBuilder {
@@ -19,7 +18,6 @@ impl Default for AnsiBuilder {
 
             // so that the following calls work
             cursor_visible: true,
-            cursor_pos: (1, 1),
         };
 
         ansi_builder.set_cursor_position(0, 0);
@@ -33,24 +31,19 @@ impl AnsiBuilder {
     pub fn write_str(&mut self, s: &str) {
         // remove the control characters without having to
         // push each character separately
-        let mut len = 0;
         for part in s.split(|c: char| c.is_control()) {
-            len += part.chars().count();
             self.s.push_str(part);
         }
-        self.cursor_pos.0 = self.cursor_pos.0.saturating_add(len);
     }
 
     pub fn write_char(&mut self, c: char) {
         if !c.is_control() {
             self.s.push(c);
         }
-        self.cursor_pos.0 = self.cursor_pos.0.saturating_add(1);
     }
 
     pub fn write_newline(&mut self) {
         self.s.push_str("\r\n");
-        self.cursor_pos = (0, self.cursor_pos.1.saturating_add(1));
     }
 
     pub fn write_style(&mut self, style: Style) {
@@ -92,14 +85,6 @@ impl AnsiBuilder {
     }
 
     pub fn set_cursor_position(&mut self, x: usize, y: usize) {
-        let pos = (x, y);
-
-        if pos == self.cursor_pos {
-            return;
-        }
-
-        self.cursor_pos = pos;
-
         let row = y.saturating_add(1);
         let col = x.saturating_add(1);
         write!(self.s, "\x1b[{row};{col}H").unwrap();
