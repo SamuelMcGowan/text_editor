@@ -98,7 +98,9 @@ impl<C: Command> App<C> {
 
     fn read_events(&mut self, deadline: Instant) -> io::Result<()> {
         while let Some(event) = self.events.read_with_deadline(deadline)? {
-            self.cmd_queue.write(C::new_event(event));
+            if let Some(cmd) = C::from_event(event) {
+                self.cmd_queue.write(cmd);
+            }
         }
 
         Ok(())

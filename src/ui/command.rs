@@ -2,20 +2,16 @@ use std::collections::VecDeque;
 
 use crate::event::Event;
 
-pub trait Command {
-    fn new_event(event: Event) -> Self;
-    fn event(&self) -> Option<&Event>;
+pub trait Command: Sized {
+    fn from_event(event: Event) -> Option<Self>;
 }
 
+// TODO: move to input printer
 pub struct SimpleCommand(pub Event);
 
 impl Command for SimpleCommand {
-    fn new_event(event: Event) -> Self {
-        Self(event)
-    }
-
-    fn event(&self) -> Option<&Event> {
-        Some(&self.0)
+    fn from_event(event: Event) -> Option<Self> {
+        Some(Self(event))
     }
 }
 
