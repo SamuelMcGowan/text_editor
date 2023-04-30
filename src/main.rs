@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use text_editor::editor::EditorRoot;
+use text_editor::editor::{EditorRoot, EditorState};
 use text_editor::ui::*;
 
 const REFRESH_RATE: Duration = Duration::from_millis(17);
@@ -9,7 +9,7 @@ fn main() {
     setup_logger().expect("failed to initialize logger");
 
     let widget = EditorRoot::default();
-    let app = App::new(widget, REFRESH_RATE).expect("couldn't create app");
+    let app = App::new(EditorState, widget, REFRESH_RATE).expect("couldn't create app");
     app.run().expect("IO error");
 }
 

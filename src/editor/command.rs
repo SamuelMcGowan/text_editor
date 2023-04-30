@@ -1,5 +1,4 @@
 use crate::event::*;
-use crate::ui::Command;
 
 pub enum NormalAction {
     CommandMode,
@@ -56,8 +55,8 @@ pub enum EditorCommand {
     Exit,
 }
 
-impl Command for EditorCommand {
-    fn from_event(event: Event) -> Option<Self> {
+impl EditorCommand {
+    pub fn from_event(event: Event) -> Option<Self> {
         match event.kind {
             EventKind::Key(KeyEvent {
                 key_code: KeyCode::Char('C'),

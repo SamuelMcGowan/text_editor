@@ -1,11 +1,12 @@
 use super::command::EditorCommand;
 use super::pane::Pane;
 use super::text_field::TextField;
+use super::{EditorBoxedWidget, EditorState};
 use crate::buffer::Buffer;
 use crate::ui::*;
 
 pub struct EditorRoot {
-    main: Box<dyn Widget<Command = EditorCommand>>,
+    main: EditorBoxedWidget,
     main_buf: Buffer,
 
     cmd_line: TextField,
@@ -30,13 +31,26 @@ impl Default for EditorRoot {
 
 impl Widget for EditorRoot {
     type Command = EditorCommand;
+    type GlobalState = EditorState;
+
+    fn handle_event(
+        &mut self,
+        state: &mut AppState<Self::Command, Self::GlobalState>,
+        event: crate::event::Event,
+    ) -> ControlFlow {
+        // workaround until we can handle events directly
+        if let Some(command) = EditorCommand::from_event(event) {
+            state.write_command(command);
+        }
+        ControlFlow::Continue
+    }
 
     fn handle_command(
         &mut self,
-        cmd: Self::Command,
-        cmd_queue: &mut CmdQueue<Self::Command>,
+        state: &mut AppState<Self::Command, Self::GlobalState>,
+        command: Self::Command,
     ) -> ControlFlow {
-        match cmd {
+        match command {
             EditorCommand::Exit => ControlFlow::Exit,
 
             EditorCommand::EnterCommand => {
@@ -52,19 +66,19 @@ impl Widget for EditorRoot {
 
             cmd => {
                 if self.cmd_focused {
-                    self.cmd_line.handle_command(cmd, cmd_queue)
+                    self.cmd_line.handle_command(state, cmd)
                 } else {
-                    self.main.handle_command(cmd, cmd_queue)
+                    self.main.handle_command(state, cmd)
                 }
             }
         }
     }
 
-    fn update(&mut self, cmd_queue: &mut CmdQueue<Self::Command>) -> ControlFlow {
+    fn update(&mut self, state: &mut AppState<Self::Command, Self::GlobalState>) -> ControlFlow {
         if self.cmd_focused {
-            self.cmd_line.update(cmd_queue)
+            self.cmd_line.update(state)
         } else {
-            self.main.update(cmd_queue)
+            self.main.update(state)
         }
     }
 

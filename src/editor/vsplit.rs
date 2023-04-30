@@ -1,10 +1,11 @@
 use super::command::EditorCommand;
+use super::{EditorBoxedWidget, EditorState};
 use crate::buffer::Buffer;
 use crate::ui::*;
 
 pub struct VSplit {
-    top: Box<dyn Widget<Command = EditorCommand>>,
-    bottom: Box<dyn Widget<Command = EditorCommand>>,
+    top: EditorBoxedWidget,
+    bottom: EditorBoxedWidget,
 
     top_constraint: Option<usize>,
     bottom_constraint: Option<usize>,
@@ -17,8 +18,8 @@ pub struct VSplit {
 
 impl VSplit {
     pub fn new(
-        top: impl Widget<Command = EditorCommand> + 'static,
-        bottom: impl Widget<Command = EditorCommand> + 'static,
+        top: impl Widget<Command = EditorCommand, GlobalState = EditorState> + 'static,
+        bottom: impl Widget<Command = EditorCommand, GlobalState = EditorState> + 'static,
         top_constraint: Option<usize>,
         bottom_constraint: Option<usize>,
     ) -> Self {
@@ -39,11 +40,20 @@ impl VSplit {
 
 impl Widget for VSplit {
     type Command = EditorCommand;
+    type GlobalState = EditorState;
+
+    fn handle_event(
+        &mut self,
+        _state: &mut AppState<Self::Command, Self::GlobalState>,
+        _event: crate::event::Event,
+    ) -> ControlFlow {
+        ControlFlow::Continue
+    }
 
     fn handle_command(
         &mut self,
+        state: &mut AppState<Self::Command, Self::GlobalState>,
         cmd: Self::Command,
-        cmd_queue: &mut CmdQueue<Self::Command>,
     ) -> ControlFlow {
         match cmd {
             EditorCommand::FocusUp => {
@@ -57,17 +67,17 @@ impl Widget for VSplit {
             }
 
             cmd => match self.focus {
-                Focus::Top => self.top.handle_command(cmd, cmd_queue),
-                Focus::Bottom => self.bottom.handle_command(cmd, cmd_queue),
+                Focus::Top => self.top.handle_command(state, cmd),
+                Focus::Bottom => self.bottom.handle_command(state, cmd),
             },
         }
     }
 
-    fn update(&mut self, cmd_queue: &mut CmdQueue<Self::Command>) -> ControlFlow {
-        if let ControlFlow::Exit = self.top.update(cmd_queue) {
+    fn update(&mut self, state: &mut AppState<Self::Command, Self::GlobalState>) -> ControlFlow {
+        if let ControlFlow::Exit = self.top.update(state) {
             return ControlFlow::Exit;
         }
-        self.bottom.update(cmd_queue)
+        self.bottom.update(state)
     }
 
     fn render(&mut self, buf: &mut Buffer) {

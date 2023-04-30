@@ -1,14 +1,13 @@
-pub mod command;
 pub mod widgets;
 
+use std::collections::VecDeque;
 use std::io;
 use std::time::{Duration, Instant};
 
 use log::trace;
 
-pub use self::command::*;
 use crate::buffer::Buffer;
-use crate::event::EventReader;
+use crate::event::{Event, EventReader};
 use crate::term::Term;
 
 #[must_use]
@@ -21,34 +20,45 @@ pub enum ControlFlow {
 }
 
 pub trait Widget {
-    type Command: Command;
+    type Command;
+    type GlobalState;
+
+    fn handle_event(
+        &mut self,
+        state: &mut AppState<Self::Command, Self::GlobalState>,
+        event: Event,
+    ) -> ControlFlow;
 
     fn handle_command(
         &mut self,
+        state: &mut AppState<Self::Command, Self::GlobalState>,
         cmd: Self::Command,
-        cmd_queue: &mut CmdQueue<Self::Command>,
     ) -> ControlFlow;
 
-    fn update(&mut self, cmd_queue: &mut CmdQueue<Self::Command>) -> ControlFlow;
+    fn update(&mut self, state: &mut AppState<Self::Command, Self::GlobalState>) -> ControlFlow;
 
     fn render(&mut self, buf: &mut Buffer);
 }
 
-pub struct App<C: Command> {
-    root: Box<dyn Widget<Command = C>>,
+pub type BoxedWidget<Command, GlobalState> =
+    Box<dyn Widget<Command = Command, GlobalState = GlobalState>>;
+
+pub struct App<Command, GlobalState> {
+    root: Box<dyn Widget<Command = Command, GlobalState = GlobalState>>,
     root_buf: Buffer,
 
     term: Term,
     events: EventReader,
 
-    cmd_queue: CmdQueue<C>,
+    state: AppState<Command, GlobalState>,
 
     refresh_rate: Duration,
 }
 
-impl<C: Command> App<C> {
+impl<Command, GlobalState> App<Command, GlobalState> {
     pub fn new(
-        widget: impl Widget<Command = C> + 'static,
+        state: GlobalState,
+        widget: impl Widget<Command = Command, GlobalState = GlobalState> + 'static,
         refresh_rate: Duration,
     ) -> io::Result<Self> {
         let term = Term::new()?;
@@ -61,7 +71,10 @@ impl<C: Command> App<C> {
             term,
             events: EventReader::new(),
 
-            cmd_queue: CmdQueue::default(),
+            state: AppState {
+                state,
+                commands: VecDeque::new(),
+            },
 
             refresh_rate,
         })
@@ -76,11 +89,14 @@ impl<C: Command> App<C> {
                 .checked_add(self.refresh_rate)
                 .expect("deadline overflowed");
 
-            if let ControlFlow::Exit = self.root.update(&mut self.cmd_queue) {
+            if let ControlFlow::Exit = self.root.update(&mut self.state) {
                 break;
             }
 
-            self.read_events(deadline)?;
+            if let ControlFlow::Exit = self.handle_events(deadline)? {
+                break;
+            }
+
             if let ControlFlow::Exit = self.handle_commands() {
                 break;
             }
@@ -96,19 +112,19 @@ impl<C: Command> App<C> {
         Ok(())
     }
 
-    fn read_events(&mut self, deadline: Instant) -> io::Result<()> {
+    fn handle_events(&mut self, deadline: Instant) -> io::Result<ControlFlow> {
         while let Some(event) = self.events.read_with_deadline(deadline)? {
-            if let Some(cmd) = C::from_event(event) {
-                self.cmd_queue.write(cmd);
+            if let ControlFlow::Exit = self.root.handle_event(&mut self.state, event) {
+                return Ok(ControlFlow::Exit);
             }
         }
 
-        Ok(())
+        Ok(ControlFlow::Continue)
     }
 
     fn handle_commands(&mut self) -> ControlFlow {
-        while let Some(cmd) = self.cmd_queue.read() {
-            if let ControlFlow::Exit = self.root.handle_command(cmd, &mut self.cmd_queue) {
+        while let Some(cmd) = self.state.read_command() {
+            if let ControlFlow::Exit = self.root.handle_command(&mut self.state, cmd) {
                 return ControlFlow::Exit;
             }
         }
@@ -124,5 +140,20 @@ impl<C: Command> App<C> {
         self.term.render_buffer(&self.root_buf)?;
 
         Ok(())
+    }
+}
+
+pub struct AppState<Command, GlobalState> {
+    state: GlobalState,
+    commands: VecDeque<Command>,
+}
+
+impl<Command, GlobalState> AppState<Command, GlobalState> {
+    pub fn write_command(&mut self, command: Command) {
+        self.commands.push_back(command);
+    }
+
+    fn read_command(&mut self) -> Option<Command> {
+        self.commands.pop_front()
     }
 }

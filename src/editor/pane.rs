@@ -1,6 +1,7 @@
 use ropey::Rope;
 
 use super::command::EditorCommand;
+use super::EditorState;
 use crate::ui::*;
 
 pub struct Pane {
@@ -21,11 +22,20 @@ impl Default for Pane {
 
 impl Widget for Pane {
     type Command = EditorCommand;
+    type GlobalState = EditorState;
+
+    fn handle_event(
+        &mut self,
+        _state: &mut AppState<Self::Command, Self::GlobalState>,
+        _event: crate::event::Event,
+    ) -> ControlFlow {
+        ControlFlow::Continue
+    }
 
     fn handle_command(
         &mut self,
+        _state: &mut AppState<Self::Command, Self::GlobalState>,
         cmd: Self::Command,
-        _cmd_queue: &mut CmdQueue<Self::Command>,
     ) -> ControlFlow {
         match cmd {
             EditorCommand::Return => {
@@ -72,7 +82,7 @@ impl Widget for Pane {
         ControlFlow::Continue
     }
 
-    fn update(&mut self, _cmd_queue: &mut CmdQueue<Self::Command>) -> ControlFlow {
+    fn update(&mut self, _state: &mut AppState<Self::Command, Self::GlobalState>) -> ControlFlow {
         ControlFlow::Continue
     }
 

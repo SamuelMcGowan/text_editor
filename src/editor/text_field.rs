@@ -1,6 +1,7 @@
 use ropey::Rope;
 
 use super::command::EditorCommand;
+use super::EditorState;
 use crate::buffer::Buffer;
 use crate::ui::*;
 
@@ -12,14 +13,23 @@ pub struct TextField {
 
 impl Widget for TextField {
     type Command = EditorCommand;
+    type GlobalState = EditorState;
+
+    fn handle_event(
+        &mut self,
+        _state: &mut AppState<Self::Command, Self::GlobalState>,
+        _event: crate::event::Event,
+    ) -> ControlFlow {
+        ControlFlow::Continue
+    }
 
     fn handle_command(
         &mut self,
-        cmd: Self::Command,
-        _cmd_queue: &mut CmdQueue<Self::Command>,
+        _state: &mut AppState<Self::Command, Self::GlobalState>,
+        command: Self::Command,
     ) -> ControlFlow {
         // TODO: maybe create wrapper type around rope for text manipulation?
-        match cmd {
+        match command {
             EditorCommand::InsertChar(c) => {
                 self.rope.insert_char(self.cursor_pos, c);
                 self.move_cursor(1);
@@ -58,7 +68,7 @@ impl Widget for TextField {
         ControlFlow::Continue
     }
 
-    fn update(&mut self, _cmd_queue: &mut CmdQueue<Self::Command>) -> ControlFlow {
+    fn update(&mut self, _state: &mut AppState<Self::Command, Self::GlobalState>) -> ControlFlow {
         ControlFlow::Continue
     }
 

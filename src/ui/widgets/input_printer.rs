@@ -1,14 +1,6 @@
 use crate::event::Event;
 use crate::ui::*;
 
-pub struct JustAnEvent(pub Event);
-
-impl Command for JustAnEvent {
-    fn from_event(event: Event) -> Option<Self> {
-        Some(Self(event))
-    }
-}
-
 #[derive(Default)]
 pub struct InputPrinter {
     ticks: usize,
@@ -16,18 +8,27 @@ pub struct InputPrinter {
 }
 
 impl Widget for InputPrinter {
-    type Command = JustAnEvent;
+    type Command = ();
+    type GlobalState = ();
 
-    fn handle_command(
+    fn handle_event(
         &mut self,
-        cmd: Self::Command,
-        _cmd_queue: &mut CmdQueue<Self::Command>,
+        _state: &mut AppState<Self::Command, Self::GlobalState>,
+        event: Event,
     ) -> ControlFlow {
-        self.event = Some(cmd.0);
+        self.event = Some(event);
         ControlFlow::Continue
     }
 
-    fn update(&mut self, _cmd_queue: &mut CmdQueue<Self::Command>) -> ControlFlow {
+    fn handle_command(
+        &mut self,
+        _state: &mut AppState<Self::Command, Self::GlobalState>,
+        _cmd: Self::Command,
+    ) -> ControlFlow {
+        ControlFlow::Continue
+    }
+
+    fn update(&mut self, _state: &mut AppState<Self::Command, Self::GlobalState>) -> ControlFlow {
         self.ticks += 1;
         ControlFlow::Continue
     }
