@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use map_macro::hash_map;
 
-use super::command::{InsertAction, NormalAction};
+use super::command::{InsertModeEvent, NormalModeEvent};
 use crate::event::*;
 
 pub struct Keybindings<Event> {
@@ -15,40 +15,40 @@ impl<Event: Copy> Keybindings<Event> {
     }
 }
 
-pub fn insert_mode_keybindings() -> Keybindings<InsertAction> {
+pub fn insert_mode_keybindings() -> Keybindings<InsertModeEvent> {
     Keybindings {
         map: hash_map! {
-            KeyEvent::key(KeyCode::Delete) => InsertAction::Delete,
-            KeyEvent::key(KeyCode::Backspace) => InsertAction::Backspace,
+            KeyEvent::key(KeyCode::Delete) => InsertModeEvent::Delete,
+            KeyEvent::key(KeyCode::Backspace) => InsertModeEvent::Backspace,
 
-            KeyEvent::key(KeyCode::Up) => InsertAction::MoveUp,
-            KeyEvent::key(KeyCode::Down) => InsertAction::MoveDown,
-            KeyEvent::key(KeyCode::Left) => InsertAction::MoveLeft,
-            KeyEvent::key(KeyCode::Right) => InsertAction::MoveRight,
+            KeyEvent::key(KeyCode::Up) => InsertModeEvent::MoveUp,
+            KeyEvent::key(KeyCode::Down) => InsertModeEvent::MoveDown,
+            KeyEvent::key(KeyCode::Left) => InsertModeEvent::MoveLeft,
+            KeyEvent::key(KeyCode::Right) => InsertModeEvent::MoveRight,
 
-            KeyEvent::key(KeyCode::Home) => InsertAction::MoveHome,
-            KeyEvent::key(KeyCode::End) => InsertAction::MoveEnd,
+            KeyEvent::key(KeyCode::Home) => InsertModeEvent::MoveHome,
+            KeyEvent::key(KeyCode::End) => InsertModeEvent::MoveEnd,
 
-            KeyEvent::key(KeyCode::Escape) => InsertAction::Escape,
+            KeyEvent::key(KeyCode::Escape) => InsertModeEvent::Escape,
         },
     }
 }
 
-pub fn normal_mode_keybindings() -> Keybindings<NormalAction> {
+pub fn normal_mode_keybindings() -> Keybindings<NormalModeEvent> {
     Keybindings {
         map: hash_map! {
-            KeyEvent::key(KeyCode::Char('c')) => NormalAction::CommandMode,
-            KeyEvent::key(KeyCode::Char('i')) => NormalAction::InsertMode,
+            KeyEvent::key(KeyCode::Char('c')) => NormalModeEvent::CommandMode,
+            KeyEvent::key(KeyCode::Char('i')) => NormalModeEvent::InsertMode,
 
-            KeyEvent::key(KeyCode::Up) => NormalAction::MoveUp,
-            KeyEvent::key(KeyCode::Down) => NormalAction::MoveDown,
-            KeyEvent::key(KeyCode::Left) => NormalAction::MoveLeft,
-            KeyEvent::key(KeyCode::Right) => NormalAction::MoveRight,
+            KeyEvent::key(KeyCode::Up) => NormalModeEvent::MoveUp,
+            KeyEvent::key(KeyCode::Down) => NormalModeEvent::MoveDown,
+            KeyEvent::key(KeyCode::Left) => NormalModeEvent::MoveLeft,
+            KeyEvent::key(KeyCode::Right) => NormalModeEvent::MoveRight,
 
-            KeyEvent::key(KeyCode::Home) => NormalAction::MoveHome,
-            KeyEvent::key(KeyCode::End) => NormalAction::MoveEnd,
+            KeyEvent::key(KeyCode::Home) => NormalModeEvent::MoveHome,
+            KeyEvent::key(KeyCode::End) => NormalModeEvent::MoveEnd,
 
-            KeyEvent::key(KeyCode::Char('q')) => NormalAction::Quit,
+            KeyEvent::key(KeyCode::Char('q')) => NormalModeEvent::Quit,
         },
     }
 }

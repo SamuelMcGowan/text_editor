@@ -9,7 +9,7 @@ fn main() {
     setup_logger().expect("failed to initialize logger");
 
     let widget = EditorRoot::default();
-    let app = App::new(EditorState, widget, REFRESH_RATE).expect("couldn't create app");
+    let app = App::new(EditorState::default(), widget, REFRESH_RATE).expect("couldn't create app");
     app.run().expect("IO error");
 }
 

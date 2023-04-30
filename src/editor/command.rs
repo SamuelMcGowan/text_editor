@@ -1,6 +1,6 @@
 use crate::event::*;
 
-pub enum NormalAction {
+pub enum NormalModeEvent {
     CommandMode,
     InsertMode,
 
@@ -15,7 +15,7 @@ pub enum NormalAction {
     Quit,
 }
 
-pub enum InsertAction {
+pub enum InsertModeEvent {
     Delete,
     Backspace,
 
