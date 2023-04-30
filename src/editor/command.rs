@@ -16,6 +16,9 @@ pub enum EditorCommand {
     MoveHome,
     MoveEnd,
 
+    FocusUp,
+    FocusDown,
+
     Exit,
 }
 
@@ -26,6 +29,16 @@ impl Command for EditorCommand {
                 key_code: KeyCode::Char('Q'),
                 modifiers: Modifiers::CTRL,
             }) => Some(Self::Exit),
+
+            EventKind::Key(KeyEvent {
+                key_code: KeyCode::Up,
+                modifiers: Modifiers::SHIFT,
+            }) => Some(Self::FocusUp),
+
+            EventKind::Key(KeyEvent {
+                key_code: KeyCode::Down,
+                modifiers: Modifiers::SHIFT,
+            }) => Some(Self::FocusDown),
 
             EventKind::Key(KeyEvent {
                 key_code,

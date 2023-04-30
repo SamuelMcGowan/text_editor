@@ -1,4 +1,5 @@
-mod command;
+pub mod command;
+pub mod vsplit;
 
 use ropey::Rope;
 
@@ -62,6 +63,8 @@ impl Widget for Editor {
             EditorCommand::MoveEnd => self.move_cursor_end(),
 
             EditorCommand::Exit => return ControlFlow::Exit,
+
+            _ => {}
         }
 
         ControlFlow::Continue
