@@ -1,6 +1,6 @@
 use super::command::EditorCommand;
+use super::pane::Pane;
 use super::text_field::TextField;
-use super::Editor;
 use crate::buffer::Buffer;
 use crate::ui::*;
 
@@ -17,7 +17,7 @@ pub struct EditorRoot {
 impl Default for EditorRoot {
     fn default() -> Self {
         Self {
-            main: Box::<Editor>::default(),
+            main: Box::<Pane>::default(),
             main_buf: Buffer::new(0, 0),
 
             cmd_line: TextField::default(),

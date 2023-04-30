@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use text_editor::editor::editor_root::EditorRoot;
+use text_editor::editor::EditorRoot;
 use text_editor::ui::*;
 
 const REFRESH_RATE: Duration = Duration::from_millis(17);
