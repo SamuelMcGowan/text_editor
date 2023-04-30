@@ -34,6 +34,11 @@ impl Widget for Editor {
         _cmd_queue: &mut CmdQueue<Self::Command>,
     ) -> ControlFlow {
         match cmd {
+            EditorCommand::Return => {
+                self.rope.insert_char(self.cursor_pos, '\n');
+                self.move_cursor(1);
+            }
+
             EditorCommand::InsertChar(c) => {
                 self.rope.insert_char(self.cursor_pos, c);
                 self.move_cursor(1);

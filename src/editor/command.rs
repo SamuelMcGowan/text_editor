@@ -6,6 +6,7 @@ pub enum EditorCommand {
 
     InsertChar(char),
     InsertString(String),
+    Return,
 
     Delete,
     Backspace,
@@ -53,7 +54,7 @@ impl Command for EditorCommand {
                 modifiers,
             }) if modifiers.is_empty() => match key_code {
                 KeyCode::Char(c) => Some(Self::InsertChar(c)),
-                KeyCode::Return => Some(Self::InsertChar('\n')),
+                KeyCode::Return => Some(Self::Return),
 
                 KeyCode::Delete => Some(Self::Delete),
                 KeyCode::Backspace => Some(Self::Backspace),
