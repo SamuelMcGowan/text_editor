@@ -6,15 +6,6 @@ pub trait Command: Sized {
     fn from_event(event: Event) -> Option<Self>;
 }
 
-// TODO: move to input printer
-pub struct SimpleCommand(pub Event);
-
-impl Command for SimpleCommand {
-    fn from_event(event: Event) -> Option<Self> {
-        Some(Self(event))
-    }
-}
-
 pub struct CmdQueue<C: Command>(VecDeque<C>);
 
 impl<C: Command> Default for CmdQueue<C> {

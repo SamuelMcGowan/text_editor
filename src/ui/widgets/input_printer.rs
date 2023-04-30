@@ -1,6 +1,15 @@
 use crate::event::Event;
 use crate::ui::*;
 
+// TODO: move to input printer
+pub struct JustAnEvent(pub Event);
+
+impl Command for JustAnEvent {
+    fn from_event(event: Event) -> Option<Self> {
+        Some(Self(event))
+    }
+}
+
 #[derive(Default)]
 pub struct InputPrinter {
     ticks: usize,
@@ -8,7 +17,7 @@ pub struct InputPrinter {
 }
 
 impl Widget for InputPrinter {
-    type Command = SimpleCommand;
+    type Command = JustAnEvent;
 
     fn handle_command(
         &mut self,

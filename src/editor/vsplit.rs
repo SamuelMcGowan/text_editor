@@ -43,8 +43,8 @@ impl Widget for VSplit {
     fn handle_command(
         &mut self,
         cmd: Self::Command,
-        cmd_queue: &mut crate::ui::CmdQueue<Self::Command>, // FIXME!!!!!!!!!!!!!!!!!!!
-    ) -> crate::ui::ControlFlow {
+        cmd_queue: &mut CmdQueue<Self::Command>,
+    ) -> ControlFlow {
         match cmd {
             EditorCommand::FocusUp => {
                 self.focus = Focus::Top;
