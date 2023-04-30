@@ -12,21 +12,9 @@ pub struct TextField {
 }
 
 impl Widget<EditorCommand, EditorState> for TextField {
-    fn handle_event(
-        &mut self,
-        _state: &mut AppState<EditorCommand, EditorState>,
-        _event: crate::event::Event,
-    ) -> ControlFlow {
-        ControlFlow::Continue
-    }
-
-    fn handle_command(
-        &mut self,
-        _state: &mut AppState<EditorCommand, EditorState>,
-        command: EditorCommand,
-    ) -> ControlFlow {
+    fn handle_event(&mut self, _state: &mut EditorState, event: EditorCommand) -> ControlFlow {
         // TODO: maybe create wrapper type around rope for text manipulation?
-        match command {
+        match event {
             EditorCommand::InsertChar(c) => {
                 self.rope.insert_char(self.cursor_pos, c);
                 self.move_cursor(1);
@@ -65,7 +53,7 @@ impl Widget<EditorCommand, EditorState> for TextField {
         ControlFlow::Continue
     }
 
-    fn update(&mut self, _state: &mut AppState<EditorCommand, EditorState>) -> ControlFlow {
+    fn update(&mut self, _state: &mut EditorState) -> ControlFlow {
         ControlFlow::Continue
     }
 

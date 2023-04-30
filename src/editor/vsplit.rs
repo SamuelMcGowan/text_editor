@@ -39,20 +39,8 @@ impl VSplit {
 }
 
 impl Widget<EditorCommand, EditorState> for VSplit {
-    fn handle_event(
-        &mut self,
-        _state: &mut AppState<EditorCommand, EditorState>,
-        _event: crate::event::Event,
-    ) -> ControlFlow {
-        ControlFlow::Continue
-    }
-
-    fn handle_command(
-        &mut self,
-        state: &mut AppState<EditorCommand, EditorState>,
-        cmd: EditorCommand,
-    ) -> ControlFlow {
-        match cmd {
+    fn handle_event(&mut self, state: &mut EditorState, event: EditorCommand) -> ControlFlow {
+        match event {
             EditorCommand::FocusUp => {
                 self.focus = Focus::Top;
                 ControlFlow::Continue
@@ -64,13 +52,13 @@ impl Widget<EditorCommand, EditorState> for VSplit {
             }
 
             cmd => match self.focus {
-                Focus::Top => self.top.handle_command(state, cmd),
-                Focus::Bottom => self.bottom.handle_command(state, cmd),
+                Focus::Top => self.top.handle_event(state, cmd),
+                Focus::Bottom => self.bottom.handle_event(state, cmd),
             },
         }
     }
 
-    fn update(&mut self, state: &mut AppState<EditorCommand, EditorState>) -> ControlFlow {
+    fn update(&mut self, state: &mut EditorState) -> ControlFlow {
         if let ControlFlow::Exit = self.top.update(state) {
             return ControlFlow::Exit;
         }

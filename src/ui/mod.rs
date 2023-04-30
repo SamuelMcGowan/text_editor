@@ -1,6 +1,5 @@
 pub mod widgets;
 
-use std::collections::VecDeque;
 use std::io;
 use std::time::{Duration, Instant};
 
@@ -19,40 +18,30 @@ pub enum ControlFlow {
     Exit,
 }
 
-pub trait Widget<Command, GlobalState> {
-    fn handle_event(
-        &mut self,
-        state: &mut AppState<Command, GlobalState>,
-        event: Event,
-    ) -> ControlFlow;
+pub trait Widget<Event, GlobalState> {
+    fn handle_event(&mut self, state: &mut GlobalState, event: Event) -> ControlFlow;
 
-    fn handle_command(
-        &mut self,
-        state: &mut AppState<Command, GlobalState>,
-        cmd: Command,
-    ) -> ControlFlow;
-
-    fn update(&mut self, state: &mut AppState<Command, GlobalState>) -> ControlFlow;
+    fn update(&mut self, state: &mut GlobalState) -> ControlFlow;
 
     fn render(&mut self, buf: &mut Buffer);
 }
 
-pub struct App<Command, GlobalState> {
-    root: Box<dyn Widget<Command, GlobalState>>,
+pub struct App<GlobalState> {
+    root: Box<dyn Widget<Event, GlobalState>>,
     root_buf: Buffer,
 
     term: Term,
     events: EventReader,
 
-    state: AppState<Command, GlobalState>,
+    state: GlobalState,
 
     refresh_rate: Duration,
 }
 
-impl<Command, GlobalState> App<Command, GlobalState> {
+impl<GlobalState> App<GlobalState> {
     pub fn new(
         state: GlobalState,
-        widget: impl Widget<Command, GlobalState> + 'static,
+        widget: impl Widget<Event, GlobalState> + 'static,
         refresh_rate: Duration,
     ) -> io::Result<Self> {
         let term = Term::new()?;
@@ -65,10 +54,7 @@ impl<Command, GlobalState> App<Command, GlobalState> {
             term,
             events: EventReader::new(),
 
-            state: AppState {
-                state,
-                commands: VecDeque::new(),
-            },
+            state,
 
             refresh_rate,
         })
@@ -88,10 +74,6 @@ impl<Command, GlobalState> App<Command, GlobalState> {
             }
 
             if let ControlFlow::Exit = self.handle_events(deadline)? {
-                break;
-            }
-
-            if let ControlFlow::Exit = self.handle_commands() {
                 break;
             }
 
@@ -116,16 +98,6 @@ impl<Command, GlobalState> App<Command, GlobalState> {
         Ok(ControlFlow::Continue)
     }
 
-    fn handle_commands(&mut self) -> ControlFlow {
-        while let Some(cmd) = self.state.read_command() {
-            if let ControlFlow::Exit = self.root.handle_command(&mut self.state, cmd) {
-                return ControlFlow::Exit;
-            }
-        }
-
-        ControlFlow::Continue
-    }
-
     fn render(&mut self) -> io::Result<()> {
         let term_size = self.term.size()?;
         self.root_buf.resize_and_clear(term_size.0, term_size.1);
@@ -134,20 +106,5 @@ impl<Command, GlobalState> App<Command, GlobalState> {
         self.term.render_buffer(&self.root_buf)?;
 
         Ok(())
-    }
-}
-
-pub struct AppState<Command, GlobalState> {
-    state: GlobalState,
-    commands: VecDeque<Command>,
-}
-
-impl<Command, GlobalState> AppState<Command, GlobalState> {
-    pub fn write_command(&mut self, command: Command) {
-        self.commands.push_back(command);
-    }
-
-    fn read_command(&mut self) -> Option<Command> {
-        self.commands.pop_front()
     }
 }

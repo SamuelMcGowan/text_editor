@@ -21,20 +21,8 @@ impl Default for Pane {
 }
 
 impl Widget<EditorCommand, EditorState> for Pane {
-    fn handle_event(
-        &mut self,
-        _state: &mut AppState<EditorCommand, EditorState>,
-        _event: crate::event::Event,
-    ) -> ControlFlow {
-        ControlFlow::Continue
-    }
-
-    fn handle_command(
-        &mut self,
-        _state: &mut AppState<EditorCommand, EditorState>,
-        cmd: EditorCommand,
-    ) -> ControlFlow {
-        match cmd {
+    fn handle_event(&mut self, _state: &mut EditorState, event: EditorCommand) -> ControlFlow {
+        match event {
             EditorCommand::Return => {
                 self.rope.insert_char(self.cursor_pos, '\n');
                 self.move_cursor(1);
@@ -79,7 +67,7 @@ impl Widget<EditorCommand, EditorState> for Pane {
         ControlFlow::Continue
     }
 
-    fn update(&mut self, _state: &mut AppState<EditorCommand, EditorState>) -> ControlFlow {
+    fn update(&mut self, _state: &mut EditorState) -> ControlFlow {
         ControlFlow::Continue
     }
 

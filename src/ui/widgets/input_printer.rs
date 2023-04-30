@@ -7,17 +7,13 @@ pub struct InputPrinter {
     event: Option<Event>,
 }
 
-impl Widget<(), ()> for InputPrinter {
-    fn handle_event(&mut self, _state: &mut AppState<(), ()>, event: Event) -> ControlFlow {
+impl Widget<Event, ()> for InputPrinter {
+    fn handle_event(&mut self, _state: &mut (), event: Event) -> ControlFlow {
         self.event = Some(event);
         ControlFlow::Continue
     }
 
-    fn handle_command(&mut self, _state: &mut AppState<(), ()>, _cmd: ()) -> ControlFlow {
-        ControlFlow::Continue
-    }
-
-    fn update(&mut self, _state: &mut AppState<(), ()>) -> ControlFlow {
+    fn update(&mut self, _state: &mut ()) -> ControlFlow {
         self.ticks += 1;
         ControlFlow::Continue
     }

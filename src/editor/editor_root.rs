@@ -3,6 +3,7 @@ use super::pane::Pane;
 use super::text_field::TextField;
 use super::EditorState;
 use crate::buffer::Buffer;
+use crate::event::Event;
 use crate::ui::*;
 
 pub struct EditorRoot {
@@ -29,25 +30,13 @@ impl Default for EditorRoot {
     }
 }
 
-impl Widget<EditorCommand, EditorState> for EditorRoot {
-    fn handle_event(
-        &mut self,
-        state: &mut AppState<EditorCommand, EditorState>,
-        event: crate::event::Event,
-    ) -> ControlFlow {
-        // workaround until we can handle events directly
-        if let Some(command) = EditorCommand::from_event(event) {
-            state.write_command(command);
-        }
-        ControlFlow::Continue
-    }
+impl Widget<Event, EditorState> for EditorRoot {
+    fn handle_event(&mut self, state: &mut EditorState, event: crate::event::Event) -> ControlFlow {
+        let Some(event) = EditorCommand::from_event(event) else {
+            return ControlFlow::Continue;
+        };
 
-    fn handle_command(
-        &mut self,
-        state: &mut AppState<EditorCommand, EditorState>,
-        command: EditorCommand,
-    ) -> ControlFlow {
-        match command {
+        match event {
             EditorCommand::Exit => ControlFlow::Exit,
 
             EditorCommand::EnterCommand => {
@@ -61,17 +50,17 @@ impl Widget<EditorCommand, EditorState> for EditorRoot {
                 ControlFlow::Continue
             }
 
-            cmd => {
+            event => {
                 if self.cmd_focused {
-                    self.cmd_line.handle_command(state, cmd)
+                    self.cmd_line.handle_event(state, event)
                 } else {
-                    self.main.handle_command(state, cmd)
+                    self.main.handle_event(state, event)
                 }
             }
         }
     }
 
-    fn update(&mut self, state: &mut AppState<EditorCommand, EditorState>) -> ControlFlow {
+    fn update(&mut self, state: &mut EditorState) -> ControlFlow {
         if self.cmd_focused {
             self.cmd_line.update(state)
         } else {
