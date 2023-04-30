@@ -61,6 +61,8 @@ impl Command for EditorCommand {
                 _ => None,
             },
 
+            EventKind::String(s) => Some(Self::InsertString(s)),
+
             _ => None,
         }
     }
