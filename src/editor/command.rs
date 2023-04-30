@@ -1,6 +1,36 @@
 use crate::event::*;
 use crate::ui::Command;
 
+pub enum NormalAction {
+    CommandMode,
+    InsertMode,
+
+    MoveUp,
+    MoveDown,
+    MoveLeft,
+    MoveRight,
+
+    MoveHome,
+    MoveEnd,
+
+    Quit,
+}
+
+pub enum InsertAction {
+    Delete,
+    Backspace,
+
+    MoveUp,
+    MoveDown,
+    MoveLeft,
+    MoveRight,
+
+    MoveHome,
+    MoveEnd,
+
+    Escape,
+}
+
 pub enum EditorCommand {
     EnterCommand,
 

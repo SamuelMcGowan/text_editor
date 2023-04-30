@@ -27,7 +27,7 @@ impl EventKind {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KeyEvent {
     pub key_code: KeyCode,
     pub modifiers: Modifiers,
@@ -42,7 +42,7 @@ impl KeyEvent {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum KeyCode {
     Char(char),
     Fn(u8),
@@ -70,7 +70,7 @@ pub enum KeyCode {
 }
 
 bitflags! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct Modifiers: u8 {
         const SHIFT = 0b0001;
         const ALT   = 0b0010;

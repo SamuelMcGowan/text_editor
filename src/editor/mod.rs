@@ -1,6 +1,7 @@
 mod editor_root;
 
 mod command;
+mod keybindings;
 mod pane;
 mod text_field;
 mod vsplit;
