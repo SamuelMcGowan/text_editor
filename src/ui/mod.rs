@@ -19,32 +19,26 @@ pub enum ControlFlow {
     Exit,
 }
 
-pub trait Widget {
-    type Command;
-    type GlobalState;
-
+pub trait Widget<Command, GlobalState> {
     fn handle_event(
         &mut self,
-        state: &mut AppState<Self::Command, Self::GlobalState>,
+        state: &mut AppState<Command, GlobalState>,
         event: Event,
     ) -> ControlFlow;
 
     fn handle_command(
         &mut self,
-        state: &mut AppState<Self::Command, Self::GlobalState>,
-        cmd: Self::Command,
+        state: &mut AppState<Command, GlobalState>,
+        cmd: Command,
     ) -> ControlFlow;
 
-    fn update(&mut self, state: &mut AppState<Self::Command, Self::GlobalState>) -> ControlFlow;
+    fn update(&mut self, state: &mut AppState<Command, GlobalState>) -> ControlFlow;
 
     fn render(&mut self, buf: &mut Buffer);
 }
 
-pub type BoxedWidget<Command, GlobalState> =
-    Box<dyn Widget<Command = Command, GlobalState = GlobalState>>;
-
 pub struct App<Command, GlobalState> {
-    root: Box<dyn Widget<Command = Command, GlobalState = GlobalState>>,
+    root: Box<dyn Widget<Command, GlobalState>>,
     root_buf: Buffer,
 
     term: Term,
@@ -58,7 +52,7 @@ pub struct App<Command, GlobalState> {
 impl<Command, GlobalState> App<Command, GlobalState> {
     pub fn new(
         state: GlobalState,
-        widget: impl Widget<Command = Command, GlobalState = GlobalState> + 'static,
+        widget: impl Widget<Command, GlobalState> + 'static,
         refresh_rate: Duration,
     ) -> io::Result<Self> {
         let term = Term::new()?;

@@ -11,13 +11,10 @@ pub struct TextField {
     cursor_pos: usize,
 }
 
-impl Widget for TextField {
-    type Command = EditorCommand;
-    type GlobalState = EditorState;
-
+impl Widget<EditorCommand, EditorState> for TextField {
     fn handle_event(
         &mut self,
-        _state: &mut AppState<Self::Command, Self::GlobalState>,
+        _state: &mut AppState<EditorCommand, EditorState>,
         _event: crate::event::Event,
     ) -> ControlFlow {
         ControlFlow::Continue
@@ -25,8 +22,8 @@ impl Widget for TextField {
 
     fn handle_command(
         &mut self,
-        _state: &mut AppState<Self::Command, Self::GlobalState>,
-        command: Self::Command,
+        _state: &mut AppState<EditorCommand, EditorState>,
+        command: EditorCommand,
     ) -> ControlFlow {
         // TODO: maybe create wrapper type around rope for text manipulation?
         match command {
@@ -68,7 +65,7 @@ impl Widget for TextField {
         ControlFlow::Continue
     }
 
-    fn update(&mut self, _state: &mut AppState<Self::Command, Self::GlobalState>) -> ControlFlow {
+    fn update(&mut self, _state: &mut AppState<EditorCommand, EditorState>) -> ControlFlow {
         ControlFlow::Continue
     }
 

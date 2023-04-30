@@ -1,12 +1,12 @@
 use super::command::EditorCommand;
 use super::pane::Pane;
 use super::text_field::TextField;
-use super::{EditorBoxedWidget, EditorState};
+use super::EditorState;
 use crate::buffer::Buffer;
 use crate::ui::*;
 
 pub struct EditorRoot {
-    main: EditorBoxedWidget,
+    main: Box<dyn Widget<EditorCommand, EditorState>>,
     main_buf: Buffer,
 
     cmd_line: TextField,
@@ -29,13 +29,10 @@ impl Default for EditorRoot {
     }
 }
 
-impl Widget for EditorRoot {
-    type Command = EditorCommand;
-    type GlobalState = EditorState;
-
+impl Widget<EditorCommand, EditorState> for EditorRoot {
     fn handle_event(
         &mut self,
-        state: &mut AppState<Self::Command, Self::GlobalState>,
+        state: &mut AppState<EditorCommand, EditorState>,
         event: crate::event::Event,
     ) -> ControlFlow {
         // workaround until we can handle events directly
@@ -47,8 +44,8 @@ impl Widget for EditorRoot {
 
     fn handle_command(
         &mut self,
-        state: &mut AppState<Self::Command, Self::GlobalState>,
-        command: Self::Command,
+        state: &mut AppState<EditorCommand, EditorState>,
+        command: EditorCommand,
     ) -> ControlFlow {
         match command {
             EditorCommand::Exit => ControlFlow::Exit,
@@ -74,7 +71,7 @@ impl Widget for EditorRoot {
         }
     }
 
-    fn update(&mut self, state: &mut AppState<Self::Command, Self::GlobalState>) -> ControlFlow {
+    fn update(&mut self, state: &mut AppState<EditorCommand, EditorState>) -> ControlFlow {
         if self.cmd_focused {
             self.cmd_line.update(state)
         } else {

@@ -20,13 +20,10 @@ impl Default for Pane {
     }
 }
 
-impl Widget for Pane {
-    type Command = EditorCommand;
-    type GlobalState = EditorState;
-
+impl Widget<EditorCommand, EditorState> for Pane {
     fn handle_event(
         &mut self,
-        _state: &mut AppState<Self::Command, Self::GlobalState>,
+        _state: &mut AppState<EditorCommand, EditorState>,
         _event: crate::event::Event,
     ) -> ControlFlow {
         ControlFlow::Continue
@@ -34,8 +31,8 @@ impl Widget for Pane {
 
     fn handle_command(
         &mut self,
-        _state: &mut AppState<Self::Command, Self::GlobalState>,
-        cmd: Self::Command,
+        _state: &mut AppState<EditorCommand, EditorState>,
+        cmd: EditorCommand,
     ) -> ControlFlow {
         match cmd {
             EditorCommand::Return => {
@@ -82,7 +79,7 @@ impl Widget for Pane {
         ControlFlow::Continue
     }
 
-    fn update(&mut self, _state: &mut AppState<Self::Command, Self::GlobalState>) -> ControlFlow {
+    fn update(&mut self, _state: &mut AppState<EditorCommand, EditorState>) -> ControlFlow {
         ControlFlow::Continue
     }
 

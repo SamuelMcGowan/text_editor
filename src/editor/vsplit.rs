@@ -1,11 +1,11 @@
 use super::command::EditorCommand;
-use super::{EditorBoxedWidget, EditorState};
+use super::EditorState;
 use crate::buffer::Buffer;
 use crate::ui::*;
 
 pub struct VSplit {
-    top: EditorBoxedWidget,
-    bottom: EditorBoxedWidget,
+    top: Box<dyn Widget<EditorCommand, EditorState>>,
+    bottom: Box<dyn Widget<EditorCommand, EditorState>>,
 
     top_constraint: Option<usize>,
     bottom_constraint: Option<usize>,
@@ -18,8 +18,8 @@ pub struct VSplit {
 
 impl VSplit {
     pub fn new(
-        top: impl Widget<Command = EditorCommand, GlobalState = EditorState> + 'static,
-        bottom: impl Widget<Command = EditorCommand, GlobalState = EditorState> + 'static,
+        top: impl Widget<EditorCommand, EditorState> + 'static,
+        bottom: impl Widget<EditorCommand, EditorState> + 'static,
         top_constraint: Option<usize>,
         bottom_constraint: Option<usize>,
     ) -> Self {
@@ -38,13 +38,10 @@ impl VSplit {
     }
 }
 
-impl Widget for VSplit {
-    type Command = EditorCommand;
-    type GlobalState = EditorState;
-
+impl Widget<EditorCommand, EditorState> for VSplit {
     fn handle_event(
         &mut self,
-        _state: &mut AppState<Self::Command, Self::GlobalState>,
+        _state: &mut AppState<EditorCommand, EditorState>,
         _event: crate::event::Event,
     ) -> ControlFlow {
         ControlFlow::Continue
@@ -52,8 +49,8 @@ impl Widget for VSplit {
 
     fn handle_command(
         &mut self,
-        state: &mut AppState<Self::Command, Self::GlobalState>,
-        cmd: Self::Command,
+        state: &mut AppState<EditorCommand, EditorState>,
+        cmd: EditorCommand,
     ) -> ControlFlow {
         match cmd {
             EditorCommand::FocusUp => {
@@ -73,7 +70,7 @@ impl Widget for VSplit {
         }
     }
 
-    fn update(&mut self, state: &mut AppState<Self::Command, Self::GlobalState>) -> ControlFlow {
+    fn update(&mut self, state: &mut AppState<EditorCommand, EditorState>) -> ControlFlow {
         if let ControlFlow::Exit = self.top.update(state) {
             return ControlFlow::Exit;
         }
