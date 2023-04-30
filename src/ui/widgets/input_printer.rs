@@ -1,7 +1,6 @@
 use crate::event::Event;
 use crate::ui::*;
 
-// TODO: move to input printer
 pub struct JustAnEvent(pub Event);
 
 impl Command for JustAnEvent {
