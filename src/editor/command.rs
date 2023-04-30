@@ -2,6 +2,8 @@ use crate::event::*;
 use crate::ui::Command;
 
 pub enum EditorCommand {
+    EnterCommand,
+
     InsertChar(char),
     InsertString(String),
 
@@ -19,12 +21,18 @@ pub enum EditorCommand {
     FocusUp,
     FocusDown,
 
+    Escape,
     Exit,
 }
 
 impl Command for EditorCommand {
     fn from_event(event: Event) -> Option<Self> {
         match event.kind {
+            EventKind::Key(KeyEvent {
+                key_code: KeyCode::Char('C'),
+                modifiers: Modifiers::CTRL,
+            }) => Some(Self::EnterCommand),
+
             EventKind::Key(KeyEvent {
                 key_code: KeyCode::Char('Q'),
                 modifiers: Modifiers::CTRL,
@@ -57,6 +65,8 @@ impl Command for EditorCommand {
 
                 KeyCode::Home => Some(Self::MoveHome),
                 KeyCode::End => Some(Self::MoveEnd),
+
+                KeyCode::Escape => Some(Self::Escape),
 
                 _ => None,
             },

@@ -1,4 +1,5 @@
 pub mod command;
+pub mod editor_root;
 pub mod vsplit;
 
 mod text_field;

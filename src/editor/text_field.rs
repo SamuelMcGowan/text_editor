@@ -1,8 +1,10 @@
 use ropey::Rope;
 
 use super::command::EditorCommand;
+use crate::buffer::Buffer;
 use crate::ui::*;
 
+#[derive(Default)]
 pub struct TextField {
     rope: Rope,
     cursor_pos: usize,
@@ -60,13 +62,17 @@ impl Widget for TextField {
         ControlFlow::Continue
     }
 
-    fn render(&mut self, buf: &mut crate::buffer::Buffer) {
-        if buf.height() == 0 {
+    fn render(&mut self, buf: &mut Buffer) {
+        if buf.height() == 0 || buf.width() == 0 {
             return;
         }
 
         for (x, c) in self.rope.chars().enumerate().take(buf.width()) {
             buf[[x, 0]].c = c;
+        }
+
+        if self.cursor_pos < buf.width() {
+            buf.set_cursor(Some((self.cursor_pos, 0)));
         }
     }
 }
@@ -78,6 +84,7 @@ impl TextField {
 
     pub fn clear(&mut self) {
         self.rope.remove(..);
+        self.cursor_pos = 0;
     }
 
     fn move_cursor(&mut self, offset: isize) {
