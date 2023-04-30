@@ -1,6 +1,8 @@
 pub mod command;
 pub mod vsplit;
 
+mod text_field;
+
 use ropey::Rope;
 
 use self::command::EditorCommand;

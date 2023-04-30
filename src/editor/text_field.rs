@@ -1,0 +1,90 @@
+use ropey::Rope;
+
+use super::command::EditorCommand;
+use crate::ui::*;
+
+pub struct TextField {
+    rope: Rope,
+    cursor_pos: usize,
+}
+
+impl Widget for TextField {
+    type Command = EditorCommand;
+
+    fn handle_command(
+        &mut self,
+        cmd: Self::Command,
+        _cmd_queue: &mut CmdQueue<Self::Command>,
+    ) -> ControlFlow {
+        // TODO: maybe create wrapper type around rope for text manipulation?
+        match cmd {
+            EditorCommand::InsertChar(c) => {
+                self.rope.insert_char(self.cursor_pos, c);
+                self.move_cursor(1);
+            }
+
+            EditorCommand::InsertString(s) => {
+                self.rope.insert(self.cursor_pos, &s);
+                // conversion could *technically* overflow
+                self.move_cursor(s.chars().count() as isize);
+            }
+
+            EditorCommand::Delete => {
+                let _ = self
+                    .rope
+                    .try_remove(self.cursor_pos..(self.cursor_pos.saturating_add(1)));
+            }
+
+            EditorCommand::Backspace => {
+                let new_pos = self.cursor_pos.saturating_sub(1);
+                let _ = self.rope.try_remove(new_pos..self.cursor_pos);
+                self.move_cursor(-1);
+            }
+
+            EditorCommand::MoveLeft => self.move_cursor(-1),
+            EditorCommand::MoveRight => self.move_cursor(1),
+
+            EditorCommand::MoveHome => self.cursor_pos = 0,
+            EditorCommand::MoveEnd => self.cursor_pos = self.rope.len_chars(),
+
+            // TODO: move this into an editor root widget.
+            EditorCommand::Exit => return ControlFlow::Exit,
+
+            _ => {}
+        }
+
+        ControlFlow::Continue
+    }
+
+    fn update(&mut self, _cmd_queue: &mut CmdQueue<Self::Command>) -> ControlFlow {
+        ControlFlow::Continue
+    }
+
+    fn render(&mut self, buf: &mut crate::buffer::Buffer) {
+        if buf.height() == 0 {
+            return;
+        }
+
+        for (x, c) in self.rope.chars().enumerate().take(buf.width()) {
+            buf[[x, 0]].c = c;
+        }
+    }
+}
+
+impl TextField {
+    pub fn value(&self) -> String {
+        self.rope.to_string()
+    }
+
+    pub fn clear(&mut self) {
+        self.rope.remove(..);
+    }
+
+    fn move_cursor(&mut self, offset: isize) {
+        let new_pos = self
+            .cursor_pos
+            .saturating_add_signed(offset)
+            .min(self.rope.len_chars());
+        self.cursor_pos = new_pos;
+    }
+}
