@@ -39,14 +39,18 @@ impl VSplit {
 }
 
 impl Widget<EditorState> for VSplit {
-    fn handle_event(&mut self, state: &mut EditorState, event: Event) -> ControlFlow {
+    fn handle_event(
+        &mut self,
+        state: &mut EditorState,
+        event: Event,
+    ) -> Result<ControlFlow, Event> {
         match event.kind {
             EventKind::Key(KeyEvent {
                 key_code: KeyCode::Up,
                 modifiers: Modifiers::SHIFT,
             }) => {
                 self.focus = Focus::Top;
-                ControlFlow::Continue
+                Ok(ControlFlow::Continue)
             }
 
             EventKind::Key(KeyEvent {
@@ -54,7 +58,7 @@ impl Widget<EditorState> for VSplit {
                 modifiers: Modifiers::SHIFT,
             }) => {
                 self.focus = Focus::Bottom;
-                ControlFlow::Continue
+                Ok(ControlFlow::Continue)
             }
 
             _ => match self.focus {

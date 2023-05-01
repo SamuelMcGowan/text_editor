@@ -31,13 +31,17 @@ impl Default for EditorRoot {
 }
 
 impl Widget<EditorState> for EditorRoot {
-    fn handle_event(&mut self, state: &mut EditorState, event: Event) -> ControlFlow {
+    fn handle_event(
+        &mut self,
+        state: &mut EditorState,
+        event: Event,
+    ) -> Result<ControlFlow, Event> {
         if self.command_mode {
             match state.key_maps.command_mode(event) {
                 Ok(CommandModeEvent::Escape) => {
                     self.cmd_line.clear();
                     self.command_mode = false;
-                    ControlFlow::Continue
+                    Ok(ControlFlow::Continue)
                 }
                 Err(event) => self.cmd_line.handle_event(state, event),
             }
@@ -46,9 +50,9 @@ impl Widget<EditorState> for EditorRoot {
                 Ok(event) => match event {
                     EditorRootEvent::CommandMode => {
                         self.command_mode = true;
-                        ControlFlow::Continue
+                        Ok(ControlFlow::Continue)
                     }
-                    EditorRootEvent::Quit => ControlFlow::Exit,
+                    EditorRootEvent::Quit => Ok(ControlFlow::Exit),
                 },
                 Err(event) => self.main.handle_event(state, event),
             }

@@ -36,10 +36,14 @@ impl Default for Pane {
 }
 
 impl Widget<EditorState> for Pane {
-    fn handle_event(&mut self, state: &mut EditorState, event: Event) -> ControlFlow {
+    fn handle_event(
+        &mut self,
+        state: &mut EditorState,
+        event: Event,
+    ) -> Result<ControlFlow, Event> {
         match self.mode {
-            Mode::Normal => {
-                if let Ok(event) = state.key_maps.normal_mode(event) {
+            Mode::Normal => match state.key_maps.normal_mode(event) {
+                Ok(event) => {
                     match event {
                         NormalModeEvent::InsertMode => self.mode = Mode::Insert,
 
@@ -51,49 +55,53 @@ impl Widget<EditorState> for Pane {
                         NormalModeEvent::MoveHome => self.move_cursor_home(),
                         NormalModeEvent::MoveEnd => self.move_cursor_end(),
                     }
+                    Ok(ControlFlow::Continue)
                 }
-            }
+                Err(event) => Err(event),
+            },
             Mode::Insert => {
-                if let Ok(event) = state.key_maps.insert_mode(event) {
-                    match event {
-                        InsertModeEvent::InsertChar(c) => {
-                            self.rope.insert_char(self.cursor_pos, c);
-                            self.move_cursor(1);
+                match state.key_maps.insert_mode(event) {
+                    Ok(event) => {
+                        match event {
+                            InsertModeEvent::InsertChar(c) => {
+                                self.rope.insert_char(self.cursor_pos, c);
+                                self.move_cursor(1);
+                            }
+
+                            InsertModeEvent::InsertString(s) => {
+                                self.rope.insert(self.cursor_pos, &s);
+                                // conversion could *technically* overflow
+                                self.move_cursor(s.chars().count() as isize);
+                            }
+
+                            InsertModeEvent::Delete => {
+                                let _ = self.rope.try_remove(
+                                    self.cursor_pos..(self.cursor_pos.saturating_add(1)),
+                                );
+                            }
+
+                            InsertModeEvent::Backspace => {
+                                let new_pos = self.cursor_pos.saturating_sub(1);
+                                let _ = self.rope.try_remove(new_pos..self.cursor_pos);
+                                self.move_cursor(-1);
+                            }
+
+                            InsertModeEvent::MoveUp => self.move_cursor_vertical(-1),
+                            InsertModeEvent::MoveDown => self.move_cursor_vertical(1),
+                            InsertModeEvent::MoveLeft => self.move_cursor(-1),
+                            InsertModeEvent::MoveRight => self.move_cursor(1),
+
+                            InsertModeEvent::MoveHome => self.move_cursor_home(),
+                            InsertModeEvent::MoveEnd => self.move_cursor_end(),
+
+                            InsertModeEvent::Escape => self.mode = Mode::Normal,
                         }
-
-                        InsertModeEvent::InsertString(s) => {
-                            self.rope.insert(self.cursor_pos, &s);
-                            // conversion could *technically* overflow
-                            self.move_cursor(s.chars().count() as isize);
-                        }
-
-                        InsertModeEvent::Delete => {
-                            let _ = self
-                                .rope
-                                .try_remove(self.cursor_pos..(self.cursor_pos.saturating_add(1)));
-                        }
-
-                        InsertModeEvent::Backspace => {
-                            let new_pos = self.cursor_pos.saturating_sub(1);
-                            let _ = self.rope.try_remove(new_pos..self.cursor_pos);
-                            self.move_cursor(-1);
-                        }
-
-                        InsertModeEvent::MoveUp => self.move_cursor_vertical(-1),
-                        InsertModeEvent::MoveDown => self.move_cursor_vertical(1),
-                        InsertModeEvent::MoveLeft => self.move_cursor(-1),
-                        InsertModeEvent::MoveRight => self.move_cursor(1),
-
-                        InsertModeEvent::MoveHome => self.move_cursor_home(),
-                        InsertModeEvent::MoveEnd => self.move_cursor_end(),
-
-                        InsertModeEvent::Escape => self.mode = Mode::Normal,
+                        Ok(ControlFlow::Continue)
                     }
+                    Err(event) => Err(event),
                 }
             }
         }
-
-        ControlFlow::Continue
     }
 
     fn update(&mut self, _state: &mut EditorState) -> ControlFlow {

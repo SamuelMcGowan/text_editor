@@ -12,7 +12,11 @@ pub struct TextField {
 }
 
 impl Widget<EditorState> for TextField {
-    fn handle_event(&mut self, _state: &mut EditorState, event: Event) -> ControlFlow {
+    fn handle_event(
+        &mut self,
+        _state: &mut EditorState,
+        event: Event,
+    ) -> Result<ControlFlow, Event> {
         // TODO: maybe create wrapper type around rope for text manipulation?
         match event.kind {
             EventKind::Key(KeyEvent {
@@ -47,7 +51,7 @@ impl Widget<EditorState> for TextField {
                 KeyCode::Home => self.cursor_pos = 0,
                 KeyCode::End => self.cursor_pos = self.rope.len_chars(),
 
-                _ => {}
+                _ => return Err(event),
             },
 
             EventKind::String(s) => {
@@ -56,10 +60,10 @@ impl Widget<EditorState> for TextField {
                 self.move_cursor(s.chars().count() as isize);
             }
 
-            _ => {}
+            _ => return Err(event),
         }
 
-        ControlFlow::Continue
+        Ok(ControlFlow::Continue)
     }
 
     fn update(&mut self, _state: &mut EditorState) -> ControlFlow {
