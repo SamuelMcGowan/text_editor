@@ -1,5 +1,6 @@
 use ropey::Rope;
 
+use super::event::InsertModeEvent;
 use super::EditorState;
 use crate::buffer::Buffer;
 use crate::event::*;
@@ -12,54 +13,44 @@ pub struct TextField {
 }
 
 impl Widget<EditorState> for TextField {
-    fn handle_event(&mut self, _state: &mut EditorState, event: &Event) -> Option<ControlFlow> {
-        // TODO: maybe create wrapper type around rope for text manipulation?
-        match &event.kind {
-            EventKind::Key(KeyEvent {
-                key_code,
-                modifiers,
-            }) if modifiers.is_empty() => match key_code {
-                KeyCode::Return => {
-                    self.rope.insert_char(self.cursor_pos, '\n');
+    fn handle_event(&mut self, state: &mut EditorState, event: &Event) -> Option<ControlFlow> {
+        state.key_maps.insert_mode(event).and_then(|event| {
+            match event {
+                InsertModeEvent::InsertChar(c) => {
+                    self.rope.insert_char(self.cursor_pos, c);
                     self.move_cursor(1);
                 }
 
-                KeyCode::Char(c) => {
-                    self.rope.insert_char(self.cursor_pos, *c);
-                    self.move_cursor(1);
+                InsertModeEvent::InsertString(s) => {
+                    self.rope.insert(self.cursor_pos, &s);
+                    // conversion could *technically* overflow
+                    self.move_cursor(s.chars().count() as isize);
                 }
 
-                KeyCode::Delete => {
+                InsertModeEvent::Delete => {
                     let _ = self
                         .rope
                         .try_remove(self.cursor_pos..(self.cursor_pos.saturating_add(1)));
                 }
 
-                KeyCode::Backspace => {
+                InsertModeEvent::Backspace => {
                     let new_pos = self.cursor_pos.saturating_sub(1);
                     let _ = self.rope.try_remove(new_pos..self.cursor_pos);
                     self.move_cursor(-1);
                 }
 
-                KeyCode::Left => self.move_cursor(-1),
-                KeyCode::Right => self.move_cursor(1),
+                InsertModeEvent::MoveLeft => self.move_cursor(-1),
+                InsertModeEvent::MoveRight => self.move_cursor(1),
 
-                KeyCode::Home => self.cursor_pos = 0,
-                KeyCode::End => self.cursor_pos = self.rope.len_chars(),
+                InsertModeEvent::MoveHome => self.cursor_pos = 0,
+                InsertModeEvent::MoveEnd => self.cursor_pos = self.rope.len_chars(),
 
-                _ => return None,
-            },
-
-            EventKind::String(s) => {
-                self.rope.insert(self.cursor_pos, s);
-                // conversion could *technically* overflow
-                self.move_cursor(s.chars().count() as isize);
+                InsertModeEvent::MoveUp | InsertModeEvent::MoveDown => return None,
+                InsertModeEvent::Escape => return None,
             }
 
-            _ => return None,
-        }
-
-        Some(ControlFlow::Continue)
+            Some(ControlFlow::Continue)
+        })
     }
 
     fn update(&mut self, _state: &mut EditorState) -> ControlFlow {
