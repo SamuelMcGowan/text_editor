@@ -18,7 +18,7 @@ pub enum ControlFlow {
     Exit,
 }
 
-pub trait Widget<Event, GlobalState> {
+pub trait Widget<GlobalState> {
     fn handle_event(&mut self, state: &mut GlobalState, event: Event) -> ControlFlow;
 
     fn update(&mut self, state: &mut GlobalState) -> ControlFlow;
@@ -27,7 +27,7 @@ pub trait Widget<Event, GlobalState> {
 }
 
 pub struct App<GlobalState> {
-    root: Box<dyn Widget<Event, GlobalState>>,
+    root: Box<dyn Widget<GlobalState>>,
     root_buf: Buffer,
 
     term: Term,
@@ -41,7 +41,7 @@ pub struct App<GlobalState> {
 impl<GlobalState> App<GlobalState> {
     pub fn new(
         state: GlobalState,
-        widget: impl Widget<Event, GlobalState> + 'static,
+        widget: impl Widget<GlobalState> + 'static,
         refresh_rate: Duration,
     ) -> io::Result<Self> {
         let term = Term::new()?;

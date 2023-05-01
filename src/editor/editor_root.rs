@@ -1,13 +1,12 @@
-use super::command::EditorCommand;
 use super::pane::Pane;
 use super::text_field::TextField;
 use super::EditorState;
 use crate::buffer::Buffer;
-use crate::event::Event;
+use crate::event::*;
 use crate::ui::*;
 
 pub struct EditorRoot {
-    main: Box<dyn Widget<EditorCommand, EditorState>>,
+    main: Box<dyn Widget<EditorState>>,
     main_buf: Buffer,
 
     cmd_line: TextField,
@@ -30,27 +29,32 @@ impl Default for EditorRoot {
     }
 }
 
-impl Widget<Event, EditorState> for EditorRoot {
-    fn handle_event(&mut self, state: &mut EditorState, event: crate::event::Event) -> ControlFlow {
-        let Some(event) = EditorCommand::from_event(event) else {
-            return ControlFlow::Continue;
-        };
+impl Widget<EditorState> for EditorRoot {
+    fn handle_event(&mut self, state: &mut EditorState, event: Event) -> ControlFlow {
+        match event.kind {
+            EventKind::Key(KeyEvent {
+                key_code: KeyCode::Char('Q'),
+                modifiers: Modifiers::CTRL,
+            }) => ControlFlow::Exit,
 
-        match event {
-            EditorCommand::Exit => ControlFlow::Exit,
-
-            EditorCommand::EnterCommand => {
+            EventKind::Key(KeyEvent {
+                key_code: KeyCode::Char('C'),
+                modifiers: Modifiers::CTRL,
+            }) => {
                 self.cmd_focused = true;
                 ControlFlow::Continue
             }
 
-            EditorCommand::Escape if self.cmd_focused => {
+            EventKind::Key(KeyEvent {
+                key_code: KeyCode::Escape,
+                modifiers,
+            }) if modifiers.is_empty() && self.cmd_focused => {
                 self.cmd_line.clear();
                 self.cmd_focused = false;
                 ControlFlow::Continue
             }
 
-            event => {
+            _ => {
                 if self.cmd_focused {
                     self.cmd_line.handle_event(state, event)
                 } else {

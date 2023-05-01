@@ -1,11 +1,11 @@
-use super::command::EditorCommand;
 use super::EditorState;
 use crate::buffer::Buffer;
+use crate::event::*;
 use crate::ui::*;
 
 pub struct VSplit {
-    top: Box<dyn Widget<EditorCommand, EditorState>>,
-    bottom: Box<dyn Widget<EditorCommand, EditorState>>,
+    top: Box<dyn Widget<EditorState>>,
+    bottom: Box<dyn Widget<EditorState>>,
 
     top_constraint: Option<usize>,
     bottom_constraint: Option<usize>,
@@ -18,8 +18,8 @@ pub struct VSplit {
 
 impl VSplit {
     pub fn new(
-        top: impl Widget<EditorCommand, EditorState> + 'static,
-        bottom: impl Widget<EditorCommand, EditorState> + 'static,
+        top: impl Widget<EditorState> + 'static,
+        bottom: impl Widget<EditorState> + 'static,
         top_constraint: Option<usize>,
         bottom_constraint: Option<usize>,
     ) -> Self {
@@ -38,22 +38,28 @@ impl VSplit {
     }
 }
 
-impl Widget<EditorCommand, EditorState> for VSplit {
-    fn handle_event(&mut self, state: &mut EditorState, event: EditorCommand) -> ControlFlow {
-        match event {
-            EditorCommand::FocusUp => {
+impl Widget<EditorState> for VSplit {
+    fn handle_event(&mut self, state: &mut EditorState, event: Event) -> ControlFlow {
+        match event.kind {
+            EventKind::Key(KeyEvent {
+                key_code: KeyCode::Up,
+                modifiers: Modifiers::SHIFT,
+            }) => {
                 self.focus = Focus::Top;
                 ControlFlow::Continue
             }
 
-            EditorCommand::FocusDown => {
+            EventKind::Key(KeyEvent {
+                key_code: KeyCode::Down,
+                modifiers: Modifiers::SHIFT,
+            }) => {
                 self.focus = Focus::Bottom;
                 ControlFlow::Continue
             }
 
-            cmd => match self.focus {
-                Focus::Top => self.top.handle_event(state, cmd),
-                Focus::Bottom => self.bottom.handle_event(state, cmd),
+            _ => match self.focus {
+                Focus::Top => self.top.handle_event(state, event),
+                Focus::Bottom => self.bottom.handle_event(state, event),
             },
         }
     }

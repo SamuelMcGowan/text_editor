@@ -1,8 +1,8 @@
 use ropey::Rope;
 
-use super::command::EditorCommand;
 use super::EditorState;
 use crate::buffer::Buffer;
+use crate::event::*;
 use crate::ui::*;
 
 #[derive(Default)]
@@ -11,41 +11,50 @@ pub struct TextField {
     cursor_pos: usize,
 }
 
-impl Widget<EditorCommand, EditorState> for TextField {
-    fn handle_event(&mut self, _state: &mut EditorState, event: EditorCommand) -> ControlFlow {
+impl Widget<EditorState> for TextField {
+    fn handle_event(&mut self, _state: &mut EditorState, event: Event) -> ControlFlow {
         // TODO: maybe create wrapper type around rope for text manipulation?
-        match event {
-            EditorCommand::InsertChar(c) => {
-                self.rope.insert_char(self.cursor_pos, c);
-                self.move_cursor(1);
-            }
+        match event.kind {
+            EventKind::Key(KeyEvent {
+                key_code,
+                modifiers,
+            }) if modifiers.is_empty() => match key_code {
+                KeyCode::Return => {
+                    self.rope.insert_char(self.cursor_pos, '\n');
+                    self.move_cursor(1);
+                }
 
-            EditorCommand::InsertString(s) => {
+                KeyCode::Char(c) => {
+                    self.rope.insert_char(self.cursor_pos, c);
+                    self.move_cursor(1);
+                }
+
+                KeyCode::Delete => {
+                    let _ = self
+                        .rope
+                        .try_remove(self.cursor_pos..(self.cursor_pos.saturating_add(1)));
+                }
+
+                KeyCode::Backspace => {
+                    let new_pos = self.cursor_pos.saturating_sub(1);
+                    let _ = self.rope.try_remove(new_pos..self.cursor_pos);
+                    self.move_cursor(-1);
+                }
+
+                KeyCode::Left => self.move_cursor(-1),
+                KeyCode::Right => self.move_cursor(1),
+
+                KeyCode::Home => self.cursor_pos = 0,
+                KeyCode::End => self.cursor_pos = self.rope.len_chars(),
+
+                _ => {}
+            },
+
+            EventKind::String(s) => {
                 self.rope.insert(self.cursor_pos, &s);
                 // conversion could *technically* overflow
                 self.move_cursor(s.chars().count() as isize);
             }
-
-            EditorCommand::Delete => {
-                let _ = self
-                    .rope
-                    .try_remove(self.cursor_pos..(self.cursor_pos.saturating_add(1)));
-            }
-
-            EditorCommand::Backspace => {
-                let new_pos = self.cursor_pos.saturating_sub(1);
-                let _ = self.rope.try_remove(new_pos..self.cursor_pos);
-                self.move_cursor(-1);
-            }
-
-            EditorCommand::MoveLeft => self.move_cursor(-1),
-            EditorCommand::MoveRight => self.move_cursor(1),
-
-            EditorCommand::MoveHome => self.cursor_pos = 0,
-            EditorCommand::MoveEnd => self.cursor_pos = self.rope.len_chars(),
-
-            // TODO: move this into an editor root widget.
-            EditorCommand::Exit => return ControlFlow::Exit,
 
             _ => {}
         }

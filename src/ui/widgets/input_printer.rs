@@ -7,7 +7,7 @@ pub struct InputPrinter {
     event: Option<Event>,
 }
 
-impl Widget<Event, ()> for InputPrinter {
+impl Widget<()> for InputPrinter {
     fn handle_event(&mut self, _state: &mut (), event: Event) -> ControlFlow {
         self.event = Some(event);
         ControlFlow::Continue

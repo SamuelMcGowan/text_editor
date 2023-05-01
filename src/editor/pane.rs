@@ -1,7 +1,7 @@
 use ropey::Rope;
 
-use super::command::EditorCommand;
 use super::EditorState;
+use crate::event::*;
 use crate::ui::*;
 
 pub struct Pane {
@@ -20,46 +20,51 @@ impl Default for Pane {
     }
 }
 
-impl Widget<EditorCommand, EditorState> for Pane {
-    fn handle_event(&mut self, _state: &mut EditorState, event: EditorCommand) -> ControlFlow {
-        match event {
-            EditorCommand::Return => {
-                self.rope.insert_char(self.cursor_pos, '\n');
-                self.move_cursor(1);
-            }
+impl Widget<EditorState> for Pane {
+    fn handle_event(&mut self, _state: &mut EditorState, event: Event) -> ControlFlow {
+        match event.kind {
+            EventKind::Key(KeyEvent {
+                key_code,
+                modifiers,
+            }) if modifiers.is_empty() => match key_code {
+                KeyCode::Return => {
+                    self.rope.insert_char(self.cursor_pos, '\n');
+                    self.move_cursor(1);
+                }
 
-            EditorCommand::InsertChar(c) => {
-                self.rope.insert_char(self.cursor_pos, c);
-                self.move_cursor(1);
-            }
+                KeyCode::Char(c) => {
+                    self.rope.insert_char(self.cursor_pos, c);
+                    self.move_cursor(1);
+                }
 
-            EditorCommand::InsertString(s) => {
+                KeyCode::Delete => {
+                    let _ = self
+                        .rope
+                        .try_remove(self.cursor_pos..(self.cursor_pos.saturating_add(1)));
+                }
+
+                KeyCode::Backspace => {
+                    let new_pos = self.cursor_pos.saturating_sub(1);
+                    let _ = self.rope.try_remove(new_pos..self.cursor_pos);
+                    self.move_cursor(-1);
+                }
+
+                KeyCode::Left => self.move_cursor(-1),
+                KeyCode::Right => self.move_cursor(1),
+                KeyCode::Up => self.move_cursor_vertical(-1),
+                KeyCode::Down => self.move_cursor_vertical(1),
+
+                KeyCode::Home => self.move_cursor_home(),
+                KeyCode::End => self.move_cursor_end(),
+
+                _ => {}
+            },
+
+            EventKind::String(s) => {
                 self.rope.insert(self.cursor_pos, &s);
                 // conversion could *technically* overflow
                 self.move_cursor(s.chars().count() as isize);
             }
-
-            EditorCommand::Delete => {
-                let _ = self
-                    .rope
-                    .try_remove(self.cursor_pos..(self.cursor_pos.saturating_add(1)));
-            }
-
-            EditorCommand::Backspace => {
-                let new_pos = self.cursor_pos.saturating_sub(1);
-                let _ = self.rope.try_remove(new_pos..self.cursor_pos);
-                self.move_cursor(-1);
-            }
-
-            EditorCommand::MoveLeft => self.move_cursor(-1),
-            EditorCommand::MoveRight => self.move_cursor(1),
-            EditorCommand::MoveUp => self.move_cursor_vertical(-1),
-            EditorCommand::MoveDown => self.move_cursor_vertical(1),
-
-            EditorCommand::MoveHome => self.move_cursor_home(),
-            EditorCommand::MoveEnd => self.move_cursor_end(),
-
-            EditorCommand::Exit => return ControlFlow::Exit,
 
             _ => {}
         }
