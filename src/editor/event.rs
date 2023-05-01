@@ -1,5 +1,5 @@
+#[derive(Debug, Clone)]
 pub enum NormalModeEvent {
-    CommandMode,
     InsertMode,
 
     MoveUp,
@@ -9,11 +9,13 @@ pub enum NormalModeEvent {
 
     MoveHome,
     MoveEnd,
-
-    Quit,
 }
 
+#[derive(Debug, Clone)]
 pub enum InsertModeEvent {
+    InsertChar(char),
+    InsertString(String),
+
     Delete,
     Backspace,
 
@@ -26,4 +28,16 @@ pub enum InsertModeEvent {
     MoveEnd,
 
     Escape,
+}
+
+#[derive(Debug, Clone)]
+pub enum EditorRootEvent {
+    CommandMode,
+    Quit,
+}
+
+#[derive(Debug, Clone)]
+pub enum VSplitEvent {
+    FocusUp,
+    FocusDown,
 }
