@@ -42,17 +42,17 @@ impl VSplit {
 impl Widget<EditorState> for VSplit {
     fn handle_event(&mut self, state: &mut EditorState, event: &Event) -> Option<ControlFlow> {
         match state.key_maps.vsplit(event) {
-            Some(event) => {
-                match event {
-                    VSplitEvent::FocusUp => {
-                        self.focus = Focus::Top;
-                    }
-                    VSplitEvent::FocusDown => {
-                        self.focus = Focus::Bottom;
-                    }
+            Some(event) => match event {
+                VSplitEvent::FocusUp if self.focus == Focus::Bottom => {
+                    self.focus = Focus::Top;
+                    Some(ControlFlow::Continue)
                 }
-                Some(ControlFlow::Continue)
-            }
+                VSplitEvent::FocusDown if self.focus == Focus::Top => {
+                    self.focus = Focus::Bottom;
+                    Some(ControlFlow::Continue)
+                }
+                _ => None,
+            },
 
             None => match self.focus {
                 Focus::Top => self.top.handle_event(state, event),
