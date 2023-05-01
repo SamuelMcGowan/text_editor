@@ -1,6 +1,6 @@
 mod editor_root;
 
-mod command;
+mod event;
 mod keybindings;
 mod pane;
 mod text_field;
@@ -8,7 +8,7 @@ mod vsplit;
 
 pub use editor_root::EditorRoot;
 
-use self::command::*;
+use self::event::*;
 use self::keybindings::*;
 
 pub struct EditorState {

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use map_macro::hash_map;
 
-use super::command::{InsertModeEvent, NormalModeEvent};
+use super::event::{InsertModeEvent, NormalModeEvent};
 use crate::event::*;
 
 pub struct Keybindings<Event> {
