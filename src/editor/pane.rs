@@ -42,8 +42,8 @@ impl Widget<EditorState> for Pane {
         event: Event,
     ) -> Result<ControlFlow, Event> {
         match self.mode {
-            Mode::Normal => match state.key_maps.normal_mode(event) {
-                Ok(event) => {
+            Mode::Normal => match state.key_maps.normal_mode(&event) {
+                Some(event) => {
                     match event {
                         NormalModeEvent::InsertMode => self.mode = Mode::Insert,
 
@@ -57,11 +57,12 @@ impl Widget<EditorState> for Pane {
                     }
                     Ok(ControlFlow::Continue)
                 }
-                Err(event) => Err(event),
+                None => Err(event),
             },
+
             Mode::Insert => {
-                match state.key_maps.insert_mode(event) {
-                    Ok(event) => {
+                match state.key_maps.insert_mode(&event) {
+                    Some(event) => {
                         match event {
                             InsertModeEvent::InsertChar(c) => {
                                 self.rope.insert_char(self.cursor_pos, c);
@@ -98,7 +99,7 @@ impl Widget<EditorState> for Pane {
                         }
                         Ok(ControlFlow::Continue)
                     }
-                    Err(event) => Err(event),
+                    None => Err(event),
                 }
             }
         }

@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 #[derive(Debug, Clone)]
 pub enum NormalModeEvent {
     InsertMode,
@@ -14,7 +16,7 @@ pub enum NormalModeEvent {
 #[derive(Debug, Clone)]
 pub enum InsertModeEvent {
     InsertChar(char),
-    InsertString(String),
+    InsertString(Rc<String>),
 
     Delete,
     Backspace,

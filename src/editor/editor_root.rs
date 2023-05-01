@@ -37,27 +37,27 @@ impl Widget<EditorState> for EditorRoot {
         event: Event,
     ) -> Result<ControlFlow, Event> {
         if self.command_mode {
-            match state.key_maps.command_mode(event) {
-                Ok(CommandModeEvent::Escape) => {
+            match state.key_maps.command_mode(&event) {
+                Some(CommandModeEvent::Escape) => {
                     self.cmd_line.clear();
                     self.command_mode = false;
                     Ok(ControlFlow::Continue)
                 }
-                Err(event) => self.cmd_line.handle_event(state, event),
+                None => self.cmd_line.handle_event(state, event),
             }
         } else {
             // Let the main widget handle the event, if it is not handled, handle it
             // ourselves.
             self.main.handle_event(state, event).or_else(|event| {
-                match state.key_maps.editor_root(event) {
-                    Ok(event) => match event {
+                match state.key_maps.editor_root(&event) {
+                    Some(event) => match event {
                         EditorRootEvent::CommandMode => {
                             self.command_mode = true;
                             Ok(ControlFlow::Continue)
                         }
                         EditorRootEvent::Quit => Ok(ControlFlow::Exit),
                     },
-                    Err(event) => self.main.handle_event(state, event),
+                    None => self.main.handle_event(state, event),
                 }
             })
         }

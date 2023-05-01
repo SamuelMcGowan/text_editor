@@ -1,4 +1,5 @@
 use std::io;
+use std::rc::Rc;
 use std::time::Instant;
 
 use bitflags::bitflags;
@@ -14,7 +15,7 @@ pub struct Event {
 #[derive(Debug, Clone)]
 pub enum EventKind {
     Key(KeyEvent),
-    String(String),
+    String(Rc<String>),
     Unknown,
 }
 
@@ -231,7 +232,7 @@ fn decode_bytes(bytes: &[u8]) -> Option<EventKind> {
         _ => {
             let s = std::str::from_utf8(bytes).ok()?;
             let kind = if s.chars().nth(1).is_some() {
-                EventKind::String(s.to_owned())
+                EventKind::String(Rc::new(s.to_owned()))
             } else {
                 EventKind::Key(KeyEvent::key(KeyCode::Char(s.chars().next()?)))
             };

@@ -11,10 +11,10 @@ struct KeyMap<E> {
 }
 
 impl<E: Clone> KeyMap<E> {
-    fn get(&self, event: Event) -> Result<E, Event> {
+    fn get(&self, event: &Event) -> Option<E> {
         match &event.kind {
-            EventKind::Key(key_event) => self.map.get(key_event).cloned().ok_or(event),
-            _ => Err(event),
+            EventKind::Key(key_event) => self.map.get(key_event).cloned(),
+            _ => None,
         }
     }
 }
@@ -101,39 +101,37 @@ impl Default for KeyMaps {
 }
 
 impl KeyMaps {
-    pub fn normal_mode(&self, event: Event) -> Result<NormalModeEvent, Event> {
+    pub fn normal_mode(&self, event: &Event) -> Option<NormalModeEvent> {
         self.normal_mode.get(event)
     }
 
-    pub fn insert_mode(&self, event: Event) -> Result<InsertModeEvent, Event> {
-        self.insert_mode
-            .get(event)
-            .or_else(|event| match event.kind {
-                EventKind::Key(KeyEvent {
-                    key_code: KeyCode::Char(c),
-                    modifiers,
-                }) if modifiers.is_empty() => Ok(InsertModeEvent::InsertChar(c)),
+    pub fn insert_mode(&self, event: &Event) -> Option<InsertModeEvent> {
+        self.insert_mode.get(event).or_else(|| match &event.kind {
+            EventKind::Key(KeyEvent {
+                key_code: KeyCode::Char(c),
+                modifiers,
+            }) if modifiers.is_empty() => Some(InsertModeEvent::InsertChar(*c)),
 
-                EventKind::Key(KeyEvent {
-                    key_code: KeyCode::Return,
-                    modifiers,
-                }) if modifiers.is_empty() => Ok(InsertModeEvent::InsertChar('\n')),
+            EventKind::Key(KeyEvent {
+                key_code: KeyCode::Return,
+                modifiers,
+            }) if modifiers.is_empty() => Some(InsertModeEvent::InsertChar('\n')),
 
-                EventKind::String(s) => Ok(InsertModeEvent::InsertString(s)),
+            EventKind::String(s) => Some(InsertModeEvent::InsertString(s.clone())),
 
-                _ => Err(event),
-            })
+            _ => None,
+        })
     }
 
-    pub fn command_mode(&self, event: Event) -> Result<CommandModeEvent, Event> {
+    pub fn command_mode(&self, event: &Event) -> Option<CommandModeEvent> {
         self.command_mode.get(event)
     }
 
-    pub fn editor_root(&self, event: Event) -> Result<EditorRootEvent, Event> {
+    pub fn editor_root(&self, event: &Event) -> Option<EditorRootEvent> {
         self.editor_root.get(event)
     }
 
-    pub fn vsplit(&self, event: Event) -> Result<VSplitEvent, Event> {
+    pub fn vsplit(&self, event: &Event) -> Option<VSplitEvent> {
         self.vsplit.get(event)
     }
 }
