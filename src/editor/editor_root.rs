@@ -46,16 +46,20 @@ impl Widget<EditorState> for EditorRoot {
                 Err(event) => self.cmd_line.handle_event(state, event),
             }
         } else {
-            match state.key_maps.editor_root(event) {
-                Ok(event) => match event {
-                    EditorRootEvent::CommandMode => {
-                        self.command_mode = true;
-                        Ok(ControlFlow::Continue)
-                    }
-                    EditorRootEvent::Quit => Ok(ControlFlow::Exit),
-                },
-                Err(event) => self.main.handle_event(state, event),
-            }
+            // Let the main widget handle the event, if it is not handled, handle it
+            // ourselves.
+            self.main.handle_event(state, event).or_else(|event| {
+                match state.key_maps.editor_root(event) {
+                    Ok(event) => match event {
+                        EditorRootEvent::CommandMode => {
+                            self.command_mode = true;
+                            Ok(ControlFlow::Continue)
+                        }
+                        EditorRootEvent::Quit => Ok(ControlFlow::Exit),
+                    },
+                    Err(event) => self.main.handle_event(state, event),
+                }
+            })
         }
     }
 
