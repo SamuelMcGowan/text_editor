@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use super::event::{EditorRootEvent, InsertModeEvent, NormalModeEvent, VSplitEvent};
+use super::event::{
+    CommandModeEvent, EditorRootEvent, InsertModeEvent, NormalModeEvent, VSplitEvent,
+};
 use crate::event::*;
 
 #[derive(Debug)]
@@ -45,6 +47,7 @@ macro_rules! key_map {
 pub struct KeyMaps {
     normal_mode: KeyMap<NormalModeEvent>,
     insert_mode: KeyMap<InsertModeEvent>,
+    command_mode: KeyMap<CommandModeEvent>,
 
     editor_root: KeyMap<EditorRootEvent>,
     vsplit: KeyMap<VSplitEvent>,
@@ -80,8 +83,12 @@ impl Default for KeyMaps {
                 Escape => InsertModeEvent::Escape,
             },
 
+            command_mode: key_map! {
+                Escape => CommandModeEvent::Escape,
+            },
+
             editor_root: key_map! {
-                Char('c') => EditorRootEvent::CommandMode,
+                Char(':') => EditorRootEvent::CommandMode,
                 Char('q') => EditorRootEvent::Quit,
             },
 
@@ -107,10 +114,19 @@ impl KeyMaps {
                     modifiers,
                 }) if modifiers.is_empty() => Ok(InsertModeEvent::InsertChar(c)),
 
+                EventKind::Key(KeyEvent {
+                    key_code: KeyCode::Return,
+                    modifiers,
+                }) if modifiers.is_empty() => Ok(InsertModeEvent::InsertChar('\n')),
+
                 EventKind::String(s) => Ok(InsertModeEvent::InsertString(s)),
 
                 _ => Err(event),
             })
+    }
+
+    pub fn command_mode(&self, event: Event) -> Result<CommandModeEvent, Event> {
+        self.command_mode.get(event)
     }
 
     pub fn editor_root(&self, event: Event) -> Result<EditorRootEvent, Event> {

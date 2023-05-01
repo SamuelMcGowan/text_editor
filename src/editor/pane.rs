@@ -1,72 +1,96 @@
 use ropey::Rope;
 
+use super::event::{InsertModeEvent, NormalModeEvent};
 use super::EditorState;
 use crate::event::*;
 use crate::ui::*;
 
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+enum Mode {
+    #[default]
+    Normal,
+
+    Insert,
+}
+
 pub struct Pane {
     rope: Rope,
+
     cursor_pos: usize,
     cursor_ghost_pos: usize,
+
+    mode: Mode,
 }
 
 impl Default for Pane {
     fn default() -> Self {
         Self {
             rope: Rope::new(),
+
             cursor_pos: 0,
             cursor_ghost_pos: 0,
+
+            mode: Mode::Normal,
         }
     }
 }
 
 impl Widget<EditorState> for Pane {
-    fn handle_event(&mut self, _state: &mut EditorState, event: Event) -> ControlFlow {
-        match event.kind {
-            EventKind::Key(KeyEvent {
-                key_code,
-                modifiers,
-            }) if modifiers.is_empty() => match key_code {
-                KeyCode::Return => {
-                    self.rope.insert_char(self.cursor_pos, '\n');
-                    self.move_cursor(1);
+    fn handle_event(&mut self, state: &mut EditorState, event: Event) -> ControlFlow {
+        match self.mode {
+            Mode::Normal => {
+                if let Ok(event) = state.key_maps.normal_mode(event) {
+                    match event {
+                        NormalModeEvent::InsertMode => self.mode = Mode::Insert,
+
+                        NormalModeEvent::MoveUp => self.move_cursor_vertical(-1),
+                        NormalModeEvent::MoveDown => self.move_cursor_vertical(1),
+                        NormalModeEvent::MoveLeft => self.move_cursor(-1),
+                        NormalModeEvent::MoveRight => self.move_cursor(1),
+
+                        NormalModeEvent::MoveHome => self.move_cursor_home(),
+                        NormalModeEvent::MoveEnd => self.move_cursor_end(),
+                    }
                 }
-
-                KeyCode::Char(c) => {
-                    self.rope.insert_char(self.cursor_pos, c);
-                    self.move_cursor(1);
-                }
-
-                KeyCode::Delete => {
-                    let _ = self
-                        .rope
-                        .try_remove(self.cursor_pos..(self.cursor_pos.saturating_add(1)));
-                }
-
-                KeyCode::Backspace => {
-                    let new_pos = self.cursor_pos.saturating_sub(1);
-                    let _ = self.rope.try_remove(new_pos..self.cursor_pos);
-                    self.move_cursor(-1);
-                }
-
-                KeyCode::Left => self.move_cursor(-1),
-                KeyCode::Right => self.move_cursor(1),
-                KeyCode::Up => self.move_cursor_vertical(-1),
-                KeyCode::Down => self.move_cursor_vertical(1),
-
-                KeyCode::Home => self.move_cursor_home(),
-                KeyCode::End => self.move_cursor_end(),
-
-                _ => {}
-            },
-
-            EventKind::String(s) => {
-                self.rope.insert(self.cursor_pos, &s);
-                // conversion could *technically* overflow
-                self.move_cursor(s.chars().count() as isize);
             }
+            Mode::Insert => {
+                if let Ok(event) = state.key_maps.insert_mode(event) {
+                    match event {
+                        InsertModeEvent::InsertChar(c) => {
+                            self.rope.insert_char(self.cursor_pos, c);
+                            self.move_cursor(1);
+                        }
 
-            _ => {}
+                        InsertModeEvent::InsertString(s) => {
+                            self.rope.insert(self.cursor_pos, &s);
+                            // conversion could *technically* overflow
+                            self.move_cursor(s.chars().count() as isize);
+                        }
+
+                        InsertModeEvent::Delete => {
+                            let _ = self
+                                .rope
+                                .try_remove(self.cursor_pos..(self.cursor_pos.saturating_add(1)));
+                        }
+
+                        InsertModeEvent::Backspace => {
+                            let new_pos = self.cursor_pos.saturating_sub(1);
+                            let _ = self.rope.try_remove(new_pos..self.cursor_pos);
+                            self.move_cursor(-1);
+                        }
+
+                        InsertModeEvent::MoveUp => self.move_cursor_vertical(-1),
+                        InsertModeEvent::MoveDown => self.move_cursor_vertical(1),
+                        InsertModeEvent::MoveLeft => self.move_cursor(-1),
+                        InsertModeEvent::MoveRight => self.move_cursor(1),
+
+                        InsertModeEvent::MoveHome => self.move_cursor_home(),
+                        InsertModeEvent::MoveEnd => self.move_cursor_end(),
+
+                        InsertModeEvent::Escape => self.mode = Mode::Normal,
+                    }
+                }
+            }
         }
 
         ControlFlow::Continue

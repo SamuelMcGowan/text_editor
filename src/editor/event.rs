@@ -31,6 +31,11 @@ pub enum InsertModeEvent {
 }
 
 #[derive(Debug, Clone)]
+pub enum CommandModeEvent {
+    Escape,
+}
+
+#[derive(Debug, Clone)]
 pub enum EditorRootEvent {
     CommandMode,
     Quit,

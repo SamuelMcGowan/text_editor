@@ -1,3 +1,4 @@
+use super::event::{CommandModeEvent, EditorRootEvent};
 use super::pane::Pane;
 use super::text_field::TextField;
 use super::EditorState;
@@ -12,7 +13,7 @@ pub struct EditorRoot {
     cmd_line: TextField,
     cmd_line_buf: Buffer,
 
-    cmd_focused: bool,
+    command_mode: bool,
 }
 
 impl Default for EditorRoot {
@@ -24,48 +25,38 @@ impl Default for EditorRoot {
             cmd_line: TextField::default(),
             cmd_line_buf: Buffer::new(0, 0),
 
-            cmd_focused: false,
+            command_mode: false,
         }
     }
 }
 
 impl Widget<EditorState> for EditorRoot {
     fn handle_event(&mut self, state: &mut EditorState, event: Event) -> ControlFlow {
-        match event.kind {
-            EventKind::Key(KeyEvent {
-                key_code: KeyCode::Char('Q'),
-                modifiers: Modifiers::CTRL,
-            }) => ControlFlow::Exit,
-
-            EventKind::Key(KeyEvent {
-                key_code: KeyCode::Char('C'),
-                modifiers: Modifiers::CTRL,
-            }) => {
-                self.cmd_focused = true;
-                ControlFlow::Continue
-            }
-
-            EventKind::Key(KeyEvent {
-                key_code: KeyCode::Escape,
-                modifiers,
-            }) if modifiers.is_empty() && self.cmd_focused => {
-                self.cmd_line.clear();
-                self.cmd_focused = false;
-                ControlFlow::Continue
-            }
-
-            _ => {
-                if self.cmd_focused {
-                    self.cmd_line.handle_event(state, event)
-                } else {
-                    self.main.handle_event(state, event)
+        if self.command_mode {
+            match state.key_maps.command_mode(event) {
+                Ok(CommandModeEvent::Escape) => {
+                    self.cmd_line.clear();
+                    self.command_mode = false;
+                    ControlFlow::Continue
                 }
+                Err(event) => self.cmd_line.handle_event(state, event),
+            }
+        } else {
+            match state.key_maps.editor_root(event) {
+                Ok(event) => match event {
+                    EditorRootEvent::CommandMode => {
+                        self.command_mode = true;
+                        ControlFlow::Continue
+                    }
+                    EditorRootEvent::Quit => ControlFlow::Exit,
+                },
+                Err(event) => self.main.handle_event(state, event),
             }
         }
     }
 
     fn update(&mut self, state: &mut EditorState) -> ControlFlow {
-        if self.cmd_focused {
+        if self.command_mode {
             self.cmd_line.update(state)
         } else {
             self.main.update(state)
@@ -80,9 +71,9 @@ impl Widget<EditorState> for EditorRoot {
         self.main_buf
             .resize_and_clear(buf.width(), buf.height() - 1);
         self.main.render(&mut self.main_buf);
-        buf.blit(0, 0, &self.main_buf, !self.cmd_focused);
+        buf.blit(0, 0, &self.main_buf, !self.command_mode);
 
-        if self.cmd_focused {
+        if self.command_mode {
             let cmd_line_y = buf.height() - 1;
 
             self.cmd_line_buf
