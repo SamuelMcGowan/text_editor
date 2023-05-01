@@ -1,3 +1,4 @@
+use super::event::VSplitEvent;
 use super::EditorState;
 use crate::buffer::Buffer;
 use crate::event::*;
@@ -44,24 +45,19 @@ impl Widget<EditorState> for VSplit {
         state: &mut EditorState,
         event: Event,
     ) -> Result<ControlFlow, Event> {
-        match event.kind {
-            EventKind::Key(KeyEvent {
-                key_code: KeyCode::Up,
-                modifiers: Modifiers::SHIFT,
-            }) => {
-                self.focus = Focus::Top;
+        match state.key_maps.vsplit(event) {
+            Ok(event) => {
+                match event {
+                    VSplitEvent::FocusUp => {
+                        self.focus = Focus::Top;
+                    }
+                    VSplitEvent::FocusDown => {
+                        self.focus = Focus::Bottom;
+                    }
+                }
                 Ok(ControlFlow::Continue)
             }
-
-            EventKind::Key(KeyEvent {
-                key_code: KeyCode::Down,
-                modifiers: Modifiers::SHIFT,
-            }) => {
-                self.focus = Focus::Bottom;
-                Ok(ControlFlow::Continue)
-            }
-
-            _ => match self.focus {
+            Err(event) => match self.focus {
                 Focus::Top => self.top.handle_event(state, event),
                 Focus::Bottom => self.bottom.handle_event(state, event),
             },
