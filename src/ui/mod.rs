@@ -19,8 +19,7 @@ pub enum ControlFlow {
 }
 
 pub trait Widget<GlobalState> {
-    fn handle_event(&mut self, state: &mut GlobalState, event: Event)
-        -> Result<ControlFlow, Event>;
+    fn handle_event(&mut self, state: &mut GlobalState, event: &Event) -> Option<ControlFlow>;
 
     fn update(&mut self, state: &mut GlobalState) -> ControlFlow;
 
@@ -91,7 +90,7 @@ impl<GlobalState> App<GlobalState> {
 
     fn handle_events(&mut self, deadline: Instant) -> io::Result<ControlFlow> {
         while let Some(event) = self.events.read_with_deadline(deadline)? {
-            if let Ok(ControlFlow::Exit) = self.root.handle_event(&mut self.state, event) {
+            if let Some(ControlFlow::Exit) = self.root.handle_event(&mut self.state, &event) {
                 return Ok(ControlFlow::Exit);
             }
         }

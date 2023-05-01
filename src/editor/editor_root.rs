@@ -31,31 +31,27 @@ impl Default for EditorRoot {
 }
 
 impl Widget<EditorState> for EditorRoot {
-    fn handle_event(
-        &mut self,
-        state: &mut EditorState,
-        event: Event,
-    ) -> Result<ControlFlow, Event> {
+    fn handle_event(&mut self, state: &mut EditorState, event: &Event) -> Option<ControlFlow> {
         if self.command_mode {
-            match state.key_maps.command_mode(&event) {
+            match state.key_maps.command_mode(event) {
                 Some(CommandModeEvent::Escape) => {
                     self.cmd_line.clear();
                     self.command_mode = false;
-                    Ok(ControlFlow::Continue)
+                    Some(ControlFlow::Continue)
                 }
                 None => self.cmd_line.handle_event(state, event),
             }
         } else {
             // Let the main widget handle the event, if it is not handled, handle it
             // ourselves.
-            self.main.handle_event(state, event).or_else(|event| {
-                match state.key_maps.editor_root(&event) {
+            self.main.handle_event(state, event).or_else(|| {
+                match state.key_maps.editor_root(event) {
                     Some(event) => match event {
                         EditorRootEvent::CommandMode => {
                             self.command_mode = true;
-                            Ok(ControlFlow::Continue)
+                            Some(ControlFlow::Continue)
                         }
-                        EditorRootEvent::Quit => Ok(ControlFlow::Exit),
+                        EditorRootEvent::Quit => Some(ControlFlow::Exit),
                     },
                     None => self.main.handle_event(state, event),
                 }

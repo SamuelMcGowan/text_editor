@@ -40,12 +40,8 @@ impl VSplit {
 }
 
 impl Widget<EditorState> for VSplit {
-    fn handle_event(
-        &mut self,
-        state: &mut EditorState,
-        event: Event,
-    ) -> Result<ControlFlow, Event> {
-        match state.key_maps.vsplit(&event) {
+    fn handle_event(&mut self, state: &mut EditorState, event: &Event) -> Option<ControlFlow> {
+        match state.key_maps.vsplit(event) {
             Some(event) => {
                 match event {
                     VSplitEvent::FocusUp => {
@@ -55,8 +51,9 @@ impl Widget<EditorState> for VSplit {
                         self.focus = Focus::Bottom;
                     }
                 }
-                Ok(ControlFlow::Continue)
+                Some(ControlFlow::Continue)
             }
+
             None => match self.focus {
                 Focus::Top => self.top.handle_event(state, event),
                 Focus::Bottom => self.bottom.handle_event(state, event),

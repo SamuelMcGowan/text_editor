@@ -8,9 +8,9 @@ pub struct InputPrinter {
 }
 
 impl Widget<()> for InputPrinter {
-    fn handle_event(&mut self, _state: &mut (), event: Event) -> Result<ControlFlow, Event> {
-        self.event = Some(event);
-        Ok(ControlFlow::Continue)
+    fn handle_event(&mut self, _state: &mut (), event: &Event) -> Option<ControlFlow> {
+        self.event = Some(event.clone());
+        Some(ControlFlow::Continue)
     }
 
     fn update(&mut self, _state: &mut ()) -> ControlFlow {

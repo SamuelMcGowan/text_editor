@@ -36,27 +36,17 @@ impl Default for Pane {
 }
 
 impl Widget<EditorState> for Pane {
-    fn handle_event(
-        &mut self,
-        state: &mut EditorState,
-        event: Event,
-    ) -> Result<ControlFlow, Event> {
+    fn handle_event(&mut self, state: &mut EditorState, event: &Event) -> Option<ControlFlow> {
         match self.mode {
-            Mode::Normal => match state.key_maps.normal_mode(&event) {
-                Some(event) => {
-                    self.handle_normal_mode_event(event);
-                    Ok(ControlFlow::Continue)
-                }
-                None => Err(event),
-            },
+            Mode::Normal => state.key_maps.normal_mode(event).map(|event| {
+                self.handle_normal_mode_event(event);
+                ControlFlow::Continue
+            }),
 
-            Mode::Insert => match state.key_maps.insert_mode(&event) {
-                Some(event) => {
-                    self.handle_insert_mode_event(event);
-                    Ok(ControlFlow::Continue)
-                }
-                None => Err(event),
-            },
+            Mode::Insert => state.key_maps.insert_mode(event).map(|event| {
+                self.handle_insert_mode_event(event);
+                ControlFlow::Continue
+            }),
         }
     }
 
