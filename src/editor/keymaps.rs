@@ -46,7 +46,7 @@ macro_rules! key_map {
 
 pub struct KeyMaps {
     normal_mode: KeyMap<NormalModeEvent>,
-    insert_mode: KeyMap<InsertModeEvent>,
+    insert_mode: KeyMap<InsertModeEvent<'static>>,
     command_mode: KeyMap<CommandModeEvent>,
 
     editor_root: KeyMap<EditorRootEvent>,
@@ -105,7 +105,7 @@ impl KeyMaps {
         self.normal_mode.get(event)
     }
 
-    pub fn insert_mode(&self, event: &Event) -> Option<InsertModeEvent> {
+    pub fn insert_mode<'a>(&self, event: &'a Event) -> Option<InsertModeEvent<'a>> {
         self.insert_mode.get(event).or_else(|| match &event.kind {
             EventKind::Key(KeyEvent {
                 key_code: KeyCode::Char(c),
@@ -117,7 +117,7 @@ impl KeyMaps {
                 modifiers,
             }) if modifiers.is_empty() => Some(InsertModeEvent::InsertChar('\n')),
 
-            EventKind::String(s) => Some(InsertModeEvent::InsertString(s.clone())),
+            EventKind::String(s) => Some(InsertModeEvent::InsertString(s)),
 
             _ => None,
         })

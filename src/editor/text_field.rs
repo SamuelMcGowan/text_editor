@@ -22,7 +22,7 @@ impl Widget<EditorState> for TextField {
                 }
 
                 InsertModeEvent::InsertString(s) => {
-                    self.rope.insert(self.cursor_pos, &s);
+                    self.rope.insert(self.cursor_pos, s);
                     // conversion could *technically* overflow
                     self.move_cursor(s.chars().count() as isize);
                 }
